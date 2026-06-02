@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-ink: #1A1A1A; /* main text */
+  --color-muted: #6B6B6B; /* secondary text */
+  --color-line: #E6E6E6; /* thin lines, borders */
+  --color-bg: #FFFFFF; /* background */
+  --color-soft: #F5F5F5; /* soft section bg */
+  --color-accent: #C8102E; /* primary accent */
+  --color-accent-dark: #9E0C24; /* accent hover */
+  --font-sans: var(--font-inter);
+  --radius-sm: 4px;
+  --radius: 6px;
+  --container-max: 1280px;
+  --container-padding: 1rem; /* 16px mobile-first */
+}
+html {
+  color: var(--color-ink);
+  background-color: var(--color-bg);
+}
+
+body {
+  @apply antialiased font-sans text-[15px] leading-7 sm:text-base;
+}
+h1, h2, h3, h4, h5, h6 {
+  @apply text-ink font-semibold tracking-wide;
+}
+
+h1 {@apply text-3xl sm:text-4xl leading-tight;}
+h2 {@apply text-2xl sm:text-3xl leading-snug;}
+h3 {@apply text-xl sm:text-2xl leading-snug;}
+.text-muted { color: var(--color-muted); }
+.text-ink { color: var(--color-ink); }
+.border-line { border-color: var(--color-line); }
+.bg-accent { background-color: var(--color-accent); }
+.hover\:bg-accent-dark:hover { background-color: var(--color-accent-dark); }
+.text-accent { color: var(--color-accent); }
+.container {
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+}
+section { @apply py-10 sm:py-14; }
+.section-soft { background-color: var(--color-soft); }
