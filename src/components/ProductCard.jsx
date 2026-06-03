@@ -18,13 +18,14 @@ export default function ProductCard({ product }) {
       {/* Image area */}
       <div className="relative mb-3 overflow-hidden rounded-sm">
         {product.images && product.images.length > 0 ? (
-          <div className="relative aspect-3/4">
+          <div className="relative aspect-3/4 bg-white">
             <Image
               src={product.images[0]}
               alt={product.name}
               fill
+              unoptimized
               sizes="(max-width: 768px) 100vw, 25vw"
-              className="object-cover transition-opacity duration-200 group-hover:opacity-95"
+              className="object-contain transition-opacity duration-200 group-hover:opacity-95"
             />
           </div>
         ) : (

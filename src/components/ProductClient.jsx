@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Heart, Shield } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import { getProductById, getProductsByCategory } from "@/data/products";
@@ -9,6 +9,12 @@ import Image from "next/image";
 
 export default function ProductClient({ id }) {
   const product = getProductById(id);
+  const productImages = product?.images && product.images.length > 0 ? product.images : ["placeholder"];
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [activeColor, setActiveColor] = useState(product?.colors?.[0] || null);
+  const [activeSize, setActiveSize] = useState(product?.sizes?.[0] || "");
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState(0);
 
   if (!product) {
     return (
@@ -18,17 +24,10 @@ export default function ProductClient({ id }) {
     );
   }
 
-  const images = product.images && product.images.length > 0 ? product.images : ["placeholder"];
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [activeColor, setActiveColor] = useState(product.colors?.[0] || null);
-  const [activeSize, setActiveSize] = useState(product.sizes?.[0] || "");
-
+  const images = productImages;
   const hasOffer = product.oldPrice != null && product.oldPrice > product.price;
   const discount = hasOffer ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
-
-  const similar = useMemo(() => {
-    return getProductsByCategory(product.category).filter((p) => p.id !== product.id).slice(0, 4);
-  }, [product]);
+  const similar = getProductsByCategory(product.category).filter((p) => p.id !== product.id).slice(0, 4);
 
   // JSON-LD breadcrumbs
   const breadcrumbsLd = {
@@ -71,19 +70,30 @@ export default function ProductClient({ id }) {
             <div>
               <div className="relative overflow-hidden rounded-sm border border-line">
                 {images[activeIdx] === "placeholder" ? (
-                  <div className="aspect-3/4 bg-[--color-soft] flex items-center justify-center text-muted">
+                  <div className="w-full aspect-[3/4] bg-[--color-soft] flex items-center justify-center text-muted">
                     <span>Attēls</span>
                   </div>
                 ) : (
-                  <div className="relative aspect-3/4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLightboxIdx(activeIdx);
+                      setLightboxOpen(true);
+                    }}
+                    className="relative block w-full aspect-[3/4]"
+                    aria-label="Atvērt attēlu pilnā izmērā"
+                  >
                     <Image
                       src={images[activeIdx]}
                       alt={product.name}
                       fill
+                      unoptimized
+                      referrerPolicy="no-referrer"
+                      loading="eager"
                       sizes="(max-width: 1024px) 100vw, 50vw"
-                      className="object-cover"
+                      className="object-contain"
                     />
-                  </div>
+                  </button>
                 )}
               </div>
               <div className="mt-3 grid grid-cols-5 gap-2">
@@ -94,7 +104,21 @@ export default function ProductClient({ id }) {
                     onClick={() => setActiveIdx(idx)}
                     aria-label={`Attēls ${idx + 1}`}
                   >
-                    {src === "placeholder" ? "Attēls" : <span className="block w-full h-full" />}
+                    {src === "placeholder" ? (
+                      "Attēls"
+                    ) : (
+                      <span className="relative block h-full w-full overflow-hidden">
+                        <Image
+                          src={src}
+                          alt={`${product.name} attēls ${idx + 1}`}
+                          fill
+                          unoptimized
+                          referrerPolicy="no-referrer"
+                          sizes="120px"
+                          className="object-contain"
+                        />
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -225,6 +249,68 @@ export default function ProductClient({ id }) {
           </div>
         </div>
       </section>
+
+      {lightboxOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <div className="relative max-w-5xl w-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="absolute right-2 top-2 text-white text-xl"
+              aria-label="Aizvērt"
+              onClick={() => setLightboxOpen(false)}
+            >
+              ✕
+            </button>
+            <div className="relative w-full aspect-video bg-black">
+              <Image
+                src={images[lightboxIdx]}
+                alt={`${product.name} – palielināts attēls`}
+                fill
+                unoptimized
+                referrerPolicy="no-referrer"
+                sizes="100vw"
+                className="object-contain"
+              />
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <button
+                type="button"
+                className="rounded-sm border border-line bg-white/10 text-white px-3 py-1.5"
+                onClick={() => setLightboxIdx((i) => (i - 1 + images.length) % images.length)}
+              >
+                Iepriekšējais
+              </button>
+              <div className="text-white text-sm">
+                {lightboxIdx + 1} / {images.length}
+              </div>
+              <button
+                type="button"
+                className="rounded-sm border border-line bg-white/10 text-white px-3 py-1.5"
+                onClick={() => setLightboxIdx((i) => (i + 1) % images.length)}
+              >
+                Nākamais
+              </button>
+            </div>
+            <div className="mt-3 grid grid-cols-5 gap-2">
+              {images.map((src, idx) => (
+                <button
+                  key={idx}
+                  className={`aspect-square rounded-sm border ${idx === lightboxIdx ? 'border-[--color-accent]' : 'border-line'} bg-[--color-soft]`}
+                  onClick={() => setLightboxIdx(idx)}
+                  aria-label={`Lightbox attēls ${idx + 1}`}
+                >
+                  <span className="relative block h-full w-full overflow-hidden">
+                    <Image src={src} alt={`${product.name} thumbnails`} fill unoptimized referrerPolicy="no-referrer" sizes="100px" className="object-contain" />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

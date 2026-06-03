@@ -24,7 +24,7 @@ export default function SearchClient() {
         <div className="container py-6">
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-wide text-ink">Meklēšana</h1>
           <p className="mt-2 text-muted">
-            Meklēšanas rezultāti: '{q}' ({results.length} atrasti)
+            Meklēšanas rezultāti: &quot;{q}&quot; ({results.length} atrasti)
           </p>
         </div>
       </section>

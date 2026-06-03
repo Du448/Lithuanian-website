@@ -9,8 +9,8 @@ const LT_CATEGORY_NAMES = {
   "sleptas-durvis": "Paslėptos durys",
 };
 
-export function generateMetadata({ params }) {
-  const slug = params?.slug;
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
   const category = getCategoryBySlug(slug);
   const nameLt = LT_CATEGORY_NAMES[slug] || category?.name || "Kategorija";
   const title = `${nameLt} | Durų Namai`;
@@ -28,6 +28,7 @@ export function generateMetadata({ params }) {
   };
 }
 
-export default function CategoryPage({ params }) {
-  return <CategoryClient slug={params.slug} />;
+export default async function CategoryPage({ params }) {
+  const { slug } = await params;
+  return <CategoryClient slug={slug} />;
 }

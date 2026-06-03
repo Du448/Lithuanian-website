@@ -5,13 +5,8 @@ import { useState } from "react";
 import { Heart, ShoppingCart, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export default function Header() {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const router = useRouter();
-  const [showSearch, setShowSearch] = useState(false);
-
-  const NavLink = ({ href, children, highlight }) => (
+function NavLink({ href, children, highlight }) {
+  return (
     <Link
       href={href}
       className={`group relative px-2 py-1 text-sm sm:text-[15px] text-ink hover:text-ink ${
@@ -24,6 +19,13 @@ export default function Header() {
       <span className="pointer-events-none absolute inset-x-1 -bottom-0.5 h-[2px] scale-x-0 bg-accent transition-transform duration-200 ease-out group-hover:scale-x-100"></span>
     </Link>
   );
+}
+
+export default function Header() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const router = useRouter();
+  const [showSearch, setShowSearch] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-bg/95 backdrop-blur supports-[backdrop-filter]:bg-bg/80">

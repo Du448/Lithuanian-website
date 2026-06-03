@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getProductById } from "@/data/products";
@@ -14,15 +14,8 @@ export default function ContactsClient() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => (product ? `Vēlos piedāvājumu par modeli: ${product.name}` : ""));
   const [submitted, setSubmitted] = useState(false);
-
-  useEffect(() => {
-    if (product && !message) {
-      setMessage(`Vēlos piedāvājumu par modeli: ${product.name}`);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId]);
 
   function onSubmit(e) {
     e.preventDefault();
