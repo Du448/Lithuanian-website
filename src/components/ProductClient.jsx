@@ -11,7 +11,6 @@ export default function ProductClient({ id }) {
   const product = getProductById(id);
   const productImages = product?.images && product.images.length > 0 ? product.images : ["placeholder"];
   const [activeIdx, setActiveIdx] = useState(0);
-  const [activeColor, setActiveColor] = useState(product?.colors?.[0] || null);
   const [activeSize, setActiveSize] = useState(product?.sizes?.[0] || "");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(0);
@@ -141,20 +140,18 @@ export default function ProductClient({ id }) {
                 )}
               </div>
 
-              {/* Colors */}
+              {/* Colors (display only: exterior / interior) */}
               {product.colors?.length ? (
                 <div className="mt-5">
-                  <div className="text-sm text-muted mb-2">Krāsa:</div>
-                  <div className="flex flex-wrap gap-2">
-                    {product.colors.map((c) => (
-                      <button
-                        key={c}
-                        onClick={() => setActiveColor(c)}
-                        className={`rounded-sm border px-3 py-1.5 text-[15px] ${activeColor === c ? "border-[--color-accent] text-ink" : "border-line text-ink"}`}
-                      >
-                        {c}
-                      </button>
-                    ))}
+                  <div className="text-sm text-muted mb-2">Krāsa (ārpuse / iekšpuse):</div>
+                  <div className="flex flex-wrap items-center gap-2 text-[15px] text-ink">
+                    <span className="rounded-sm border border-line px-3 py-1.5">{product.colors[0]}</span>
+                    {product.colors[1] ? (
+                      <>
+                        <span className="text-muted">/</span>
+                        <span className="rounded-sm border border-line px-3 py-1.5">{product.colors[1]}</span>
+                      </>
+                    ) : null}
                   </div>
                 </div>
               ) : null}

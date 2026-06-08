@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Heart, ShoppingCart, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-function NavLink({ href, children, highlight }) {
+function NavLink({ href, children, highlight, overlay = false }) {
   return (
     <Link
       href={href}
-      className={`group relative px-2 py-1 text-sm sm:text-[15px] text-ink hover:text-ink ${
-        highlight ? "text-accent" : ""
-      }`}
+      className={`group relative ${overlay ? "px-3 py-2 text-[13px] uppercase tracking-wide" : "px-2 py-1 text-sm sm:text-[15px]"} text-ink hover:text-ink ${highlight ? "text-accent" : ""}`}
     >
       <span className="inline-block">
         {children}
@@ -26,24 +25,26 @@ export default function Header() {
   const [query, setQuery] = useState("");
   const router = useRouter();
   const [showSearch, setShowSearch] = useState(false);
+  const pathname = usePathname();
+  const isHome = pathname === "/";
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-bg/95 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+    <header className={`${isHome ? "absolute" : "sticky"} top-0 z-50 w-full ${isHome ? "bg-transparent" : "bg-bg/95 backdrop-blur supports-backdrop-filter:bg-bg/80"}`}>
       {/* Top promo bar */}
-      <div className="bg-accent text-white text-center text-xs sm:text-sm py-2">
+      <div className={`text-white text-center text-xs sm:text-sm py-2 ${isHome ? "bg-accent/90" : "bg-accent"}`}>
         Nemokama konsultacija ir matavimas · Pristatymas visoje Lietuvoje
       </div>
 
       {/* Main bar */}
-      <div className="border-b border-line bg-bg">
+      <div className={`${isHome ? "border-b border-white/20 bg-transparent" : "border-b border-line bg-bg"}`}>
         <div className="container flex items-center gap-4 py-3">
           {/* Left: Logo */}
-          <Link href="/" className="text-xl sm:text-2xl font-semibold tracking-wide text-ink">
+          <Link href="/" className={`text-xl sm:text-2xl font-semibold tracking-wide ${isHome ? "text-white" : "text-ink"}`}>
             DURŲ NAMAI
           </Link>
 
           {/* Center: Search */}
-          <div className="flex-1 hidden md:flex items-center">
+          <div className={`flex-1 hidden md:flex items-center ${isHome ? "mt-2 md:mt-3" : ""}`}>
             <form
               className="w-full max-w-xl relative"
               onSubmit={(e) => {
@@ -52,7 +53,7 @@ export default function Header() {
                 if (q.length) router.push(`/meklet?q=${encodeURIComponent(q)}`);
               }}
             >
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
                 <Search size={18} />
               </span>
               <input
@@ -60,7 +61,7 @@ export default function Header() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Meklēt durvis..."
-                className="w-full rounded-sm border border-line bg-white pl-9 pr-3 py-2 text-[15px] placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[--color-accent]"
+                className="w-full rounded-full border border-black/10 bg-white/95 shadow-sm pl-10 pr-4 h-11 text-[15px] text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[--color-accent] focus:border-transparent"
                 aria-label="Meklēt"
               />
             </form>
@@ -84,19 +85,19 @@ export default function Header() {
             </Link>
             {/* Mobile menu button */}
             <button
-              className="md:hidden p-2 text-ink"
+              className={`md:hidden p-2 ${isHome ? "text-white" : "text-ink"}`}
               aria-label="Atvērt izvēlni"
               onClick={() => setOpen((v) => !v)}
             >
-              <span className="block h-0.5 w-5 bg-ink mb-1"></span>
-              <span className="block h-0.5 w-5 bg-ink mb-1"></span>
-              <span className="block h-0.5 w-5 bg-ink"></span>
+              <span className={`block h-0.5 w-5 ${isHome ? "bg-white" : "bg-ink"} mb-1`}></span>
+              <span className={`block h-0.5 w-5 ${isHome ? "bg-white" : "bg-ink"} mb-1`}></span>
+              <span className={`block h-0.5 w-5 ${isHome ? "bg-white" : "bg-ink"}`}></span>
             </button>
           </nav>
         </div>
 
         {/* Mobile search (visible under main row) */}
-        <div className="container md:hidden pb-3">
+        <div className="container md:hidden pb-3 px-2">
           <form
             className="relative"
             onSubmit={(e) => {
@@ -105,7 +106,7 @@ export default function Header() {
               if (q.length) router.push(`/meklet?q=${encodeURIComponent(q)}`);
             }}
           >
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
               <Search size={18} />
             </span>
             <input
@@ -113,7 +114,7 @@ export default function Header() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Meklēt durvis..."
-              className="w-full rounded-sm border border-line bg-white pl-9 pr-3 py-2 text-[15px] placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[--color-accent]"
+              className="w-full rounded-full border border-black/10 bg-white/95 shadow-sm pl-10 pr-4 h-11 text-[15px] text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[--color-accent] focus:border-transparent"
               aria-label="Meklēt"
             />
           </form>
@@ -167,22 +168,42 @@ export default function Header() {
       )}
 
       {/* Categories bar */}
-      <div className="border-b border-line bg-bg">
+      <div className={`${isHome ? "border-b border-white/20 bg-transparent" : "border-b border-line bg-bg"}`}>
         <div className="container">
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-4 py-2">
-            <NavLink href="/jaunumi">Jaunumi</NavLink>
-            <NavLink href="/kategorija/ardurvis-dzivoklim">Ārdurvis dzīvoklim</NavLink>
-            <NavLink href="/kategorija/ardurvis-privatmajai">Ārdurvis privātmājai</NavLink>
-            <NavLink href="/kategorija/ieksdurvis">Iekšdurvis</NavLink>
-            <NavLink href="/kategorija/bidamas-durvis">Bīdāmās durvis</NavLink>
-            <NavLink href="/kategorija/sleptas-durvis">Slēptās durvis</NavLink>
-            <NavLink href="/akcijas" highlight>
-              Akcijas
-            </NavLink>
-            <NavLink href="/par-mums">Par mums</NavLink>
-            <NavLink href="/kontakti">Kontakti</NavLink>
-          </div>
+          {!isHome ? (
+            <div className="hidden md:flex items-center gap-4 py-2">
+              <NavLink href="/jaunumi">Jaunumi</NavLink>
+              <NavLink href="/kategorija/ardurvis-dzivoklim">Ārdurvis dzīvoklim</NavLink>
+              <NavLink href="/kategorija/ardurvis-privatmajai">Ārdurvis privātmājai</NavLink>
+              <NavLink href="/kategorija/ieksdurvis">Iekšdurvis</NavLink>
+              <NavLink href="/kategorija/bidamas-durvis">Bīdāmās durvis</NavLink>
+              <NavLink href="/kategorija/sleptas-durvis">Slēptās durvis</NavLink>
+              <NavLink href="/akcijas" highlight>
+                Akcijas
+              </NavLink>
+              <NavLink href="/par-mums">Par mums</NavLink>
+              <NavLink href="/kontakti">Kontakti</NavLink>
+            </div>
+          ) : (
+            <div className="hidden md:flex items-center justify-center py-3 mt-4 md:mt-6 lg:mt-8">
+              <div className="mx-4 md:mx-6 lg:mx-10 max-w-6xl w-full rounded-sm border border-black/10 bg-white/95 shadow-sm">
+                <div className="flex items-center gap-1 px-2">
+                  <NavLink overlay href="/jaunumi">Jaunumi</NavLink>
+                  <NavLink overlay href="/kategorija/ardurvis-dzivoklim">Ārdurvis dzīvoklim</NavLink>
+                  <NavLink overlay href="/kategorija/ardurvis-privatmajai">Ārdurvis privātmājai</NavLink>
+                  <NavLink overlay href="/kategorija/ieksdurvis">Iekšdurvis</NavLink>
+                  <NavLink overlay href="/kategorija/bidamas-durvis">Bīdāmās durvis</NavLink>
+                  <NavLink overlay href="/kategorija/sleptas-durvis">Slēptās durvis</NavLink>
+                  <NavLink overlay href="/akcijas" highlight>
+                    Akcijas
+                  </NavLink>
+                  <NavLink overlay href="/par-mums">Par mums</NavLink>
+                  <NavLink overlay href="/kontakti">Kontakti</NavLink>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Mobile nav */}
           {open && (

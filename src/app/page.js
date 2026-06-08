@@ -1,8 +1,18 @@
 import Link from "next/link";
+import Image from "next/image";
 import { categories, products } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
+import HeroSlider from "@/components/HeroSlider";
 
 export default function Home() {
+  const categoryImages = {
+    "ardurvis-dzivoklim": "https://images.unsplash.com/photo-1771354959667-96360bf59eab?auto=format&fit=crop&w=1600&q=80",
+    "ardurvis-privatmajai": "https://images.unsplash.com/photo-1613544723301-176686aa9f09?auto=format&fit=crop&w=1600&q=80",
+    "ieksdurvis": "https://images.unsplash.com/photo-1603673298820-40d77252226d?auto=format&fit=crop&w=1600&q=80",
+    "bidamas-durvis": "https://images.unsplash.com/photo-1525570665650-76bb26af503d?auto=format&fit=crop&w=1600&q=80",
+    "sleptas-durvis": "https://images.unsplash.com/photo-1721739227647-e6936b28c30f?auto=format&fit=crop&w=1600&q=80",
+  };
+
   const newProducts = products.filter((p) => p.isNew);
   const popularExterior = products
     .filter((p) => p.category.startsWith("ardurvis-"))
@@ -10,30 +20,39 @@ export default function Home() {
 
   return (
     <main>
-      {/* HERO */}
+      {/* HERO SLIDER */}
       <section className="relative">
-        <div className="container">
-          <div className="relative overflow-hidden rounded-sm border border-line">
-            <div className="h-[60vh] sm:h-[70vh] bg-[--color-soft] flex items-center">
-              <div className="px-6 sm:px-10">
-                <h1 className="text-3xl sm:text-5xl font-semibold tracking-wide text-ink leading-tight max-w-2xl">
-                  Drošas durvis Tavām mājām
-                </h1>
-                <p className="mt-3 text-muted max-w-xl">
-                  Ārdurvis un iekšdurvis ar piegādi un montāžu visā Latvijā.
-                </p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Link href="/kategorija/ardurvis-dzivoklim" className="bg-accent hover:bg-accent-dark text-white rounded-sm px-5 py-2">
-                    Skatīt ārdurvis
-                  </Link>
-                  <Link href="/kategorija/ieksdurvis" className="border border-line text-ink rounded-sm px-5 py-2">
-                    Skatīt iekšdurvis
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <HeroSlider
+            slides={[
+              {
+                image: "https://images.unsplash.com/photo-1603673298820-40d77252226d?auto=format&fit=crop&w=2400&q=80",
+                kicker: "IEKŠDURVIS",
+                title: "APARTMENT IN WILANÓW, WARSAW",
+                subtitle: "The designers were very careful to select the best quality materials.",
+                cta: [
+                  { label: "Read more", href: "/inspiracija/wilanow", variant: "outline" },
+                ],
+              },
+              {
+                image: "https://images.unsplash.com/photo-1771354959667-96360bf59eab?auto=format&fit=crop&w=2400&q=80",
+                kicker: "IEEJAS DURVIS",
+                title: "Modernas ārdurvis Jūsu mājai",
+                subtitle: "Termodurvis ar augstu energoefektivitāti un skaņas izolāciju.",
+                cta: [
+                  { label: "Skatīt kolekciju", href: "/kategorija/ardurvis-privatmajai" },
+                ],
+              },
+              {
+                image: "https://images.unsplash.com/photo-1742319096910-9efbcf6cddee?auto=format&fit=crop&w=2400&q=80",
+                kicker: "SALONI",
+                title: "Apmeklē mūsu salonus",
+                subtitle: "Uzzini par materiāliem un risinājumiem klātienē.",
+                cta: [
+                  { label: "Atrast tuvāko", href: "/kontakti", variant: "outline" },
+                ],
+              },
+            ]}
+          />
       </section>
 
       {/* KATEGORIJAS */}
@@ -42,18 +61,36 @@ export default function Home() {
           <h2 className="mb-4">Populārās kategorijas</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {categories.map((c) => (
+              (() => {
+                const categoryImage = categoryImages[c.slug] ?? null;
+
+                return (
               <Link
                 key={c.slug}
                 href={`/kategorija/${c.slug}`}
                 className="group block overflow-hidden rounded-sm border border-line bg-white"
               >
-                <div className="aspect-[4/3] bg-[--color-soft]"></div>
+                <div className="relative aspect-4/3 bg-[--color-soft]">
+                  {categoryImage ? (
+                    <Image
+                      src={categoryImage}
+                      alt={c.name}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 1024px) 50vw, 20vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    />
+                  ) : null}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                </div>
                 <div className="p-3">
                   <div className="text-ink font-medium group-hover:text-ink">
                     {c.name}
                   </div>
                 </div>
               </Link>
+                );
+              })()
             ))}
           </div>
         </div>
