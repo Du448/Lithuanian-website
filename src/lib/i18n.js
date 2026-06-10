@@ -40,6 +40,28 @@ const messages = {
       ieksdurvis: "Vidaus durys",
       "bidamas-durvis": "Stumdomos durys",
       "sleptas-durvis": "Paslėptos durys",
+      details: {
+        "ardurvis-dzivoklim": {
+          name: "Buto lauko durys",
+          description: "Metalinės lauko durys butams su garso ir šilumos izoliacija.",
+        },
+        "ardurvis-privatmajai": {
+          name: "Namo lauko durys",
+          description: "Apšiltintos metalinės ir aliuminio lauko durys su termo pertrauka namams.",
+        },
+        ieksdurvis: {
+          name: "Vidaus durys",
+          description: "Vidaus durys gyvenamosioms patalpoms įvairių spalvų ir faktūrų.",
+        },
+        "bidamas-durvis": {
+          name: "Stumdomos durys",
+          description: "Stumdomos durys ir sistemos patalpų zonavimui.",
+        },
+        "sleptas-durvis": {
+          name: "Paslėptos durys",
+          description: "Paslėpto tipo durys be matomos staktos.",
+        },
+      },
     },
     footer: {
       assortment: "Asortimentas",
@@ -231,6 +253,28 @@ const messages = {
       ieksdurvis: "Iekšdurvis",
       "bidamas-durvis": "Bīdāmās durvis",
       "sleptas-durvis": "Slēptās durvis",
+      details: {
+        "ardurvis-dzivoklim": {
+          name: "Ārdurvis dzīvoklim",
+          description: "Metāla ārdurvis dzīvokļiem ar skaņas un siltuma izolāciju.",
+        },
+        "ardurvis-privatmajai": {
+          name: "Ārdurvis privātmājai",
+          description: "Siltinātas metāla un alumīnija ārdurvis ar termopārrāvumu privātmājām.",
+        },
+        ieksdurvis: {
+          name: "Iekšdurvis",
+          description: "Iekšdurvis dzīvojamām telpām dažādās krāsās un faktūrās.",
+        },
+        "bidamas-durvis": {
+          name: "Bīdāmās durvis",
+          description: "Bīdāmās durvis un sistēmas telpu zonēšanai.",
+        },
+        "sleptas-durvis": {
+          name: "Slēptās durvis",
+          description: "Slēptā tipa durvis bez redzamas kārbas.",
+        },
+      },
     },
     footer: {
       assortment: "Sortiments",
@@ -422,6 +466,28 @@ const messages = {
       ieksdurvis: "Interior Doors",
       "bidamas-durvis": "Sliding Doors",
       "sleptas-durvis": "Hidden Doors",
+      details: {
+        "ardurvis-dzivoklim": {
+          name: "Apartment entrance doors",
+          description: "Metal entrance doors for apartments with sound and thermal insulation.",
+        },
+        "ardurvis-privatmajai": {
+          name: "House entrance doors",
+          description: "Insulated metal and aluminum entrance doors with thermal break for houses.",
+        },
+        ieksdurvis: {
+          name: "Interior doors",
+          description: "Interior doors for living spaces in various colors and finishes.",
+        },
+        "bidamas-durvis": {
+          name: "Sliding doors",
+          description: "Sliding doors and systems for zoning spaces.",
+        },
+        "sleptas-durvis": {
+          name: "Hidden doors",
+          description: "Hidden-type doors with no visible frame.",
+        },
+      },
     },
     footer: {
       assortment: "Assortment",

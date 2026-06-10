@@ -154,6 +154,16 @@ export default function CategoryClient({ slug }) {
     );
   }
 
+  const categoryName =
+    t(locale, `categories.details.${slug}.name`) !== `categories.details.${slug}.name`
+      ? t(locale, `categories.details.${slug}.name`)
+      : t(locale, `categories.${slug}`);
+
+  const resolvedDescription =
+    t(locale, `categories.details.${slug}.description`) !== `categories.details.${slug}.description`
+      ? t(locale, `categories.details.${slug}.description`)
+      : category.description;
+
   const isPrivateHouse = slug === "ardurvis-privatmajai";
 
   const Filters = (
@@ -264,12 +274,12 @@ export default function CategoryClient({ slug }) {
       <section className="border-b border-line">
         <div className="container py-6">
           <div className="text-sm text-muted">
-            <Link className="text-ink hover:text-ink" href={withLocaleHref(locale, "/")}>{t(locale, "common.home")}</Link> <span className="text-muted">/</span> <span className="text-ink">{category.name}</span>
+            <Link className="text-ink hover:text-ink" href={withLocaleHref(locale, "/")}>{t(locale, "common.home")}</Link> <span className="text-muted">/</span> <span className="text-ink">{categoryName}</span>
           </div>
-          <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-wide text-ink">{category.name}</h1>
-          {category.description && (
-            <p className="mt-2 max-w-3xl text-muted">{category.description}</p>
-          )}
+          <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-wide text-ink">{categoryName}</h1>
+          {resolvedDescription ? (
+            <p className="mt-2 max-w-3xl text-muted">{resolvedDescription}</p>
+          ) : null}
         </div>
       </section>
 
