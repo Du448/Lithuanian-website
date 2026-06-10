@@ -3,8 +3,16 @@ import Image from "next/image";
 import { categories, products } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
 import HeroSlider from "@/components/HeroSlider";
+import { headers } from "next/headers";
+import { getLocaleFromPathname, withLocaleHref, t } from "@/lib/i18n";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const h = await headers();
+  const pathname = h.get("x-invoke-path") || "/";
+  const locale = getLocaleFromPathname(pathname);
+
   const categoryImages = {
     "ardurvis-dzivoklim": "https://images.unsplash.com/photo-1771354959667-96360bf59eab?auto=format&fit=crop&w=1600&q=80",
     "ardurvis-privatmajai": "https://images.unsplash.com/photo-1613544723301-176686aa9f09?auto=format&fit=crop&w=1600&q=80",
@@ -26,29 +34,29 @@ export default function Home() {
             slides={[
               {
                 image: "https://images.unsplash.com/photo-1603673298820-40d77252226d?auto=format&fit=crop&w=2400&q=80",
-                kicker: "IEKŠDURVIS",
-                title: "APARTMENT IN WILANÓW, WARSAW",
-                subtitle: "The designers were very careful to select the best quality materials.",
+                kicker: locale === "lv" ? "IEKŠDURVIS" : locale === "en" ? "INTERIOR DOORS" : "VIDAUS DURYS",
+                title: locale === "lv" ? "Iedvesma jūsu interjeram" : locale === "en" ? "Inspiration for your interior" : "Įkvėpimas jūsų interjerui",
+                subtitle: locale === "lv" ? "Izvēlies modernus risinājumus un kvalitatīvus materiālus." : locale === "en" ? "Choose modern solutions and high-quality materials." : "Rinkitės modernius sprendimus ir aukštos kokybės medžiagas.",
                 cta: [
-                  { label: "Read more", href: "/inspiracija/wilanow", variant: "outline" },
+                  { label: locale === "lv" ? "Uzzināt vairāk" : locale === "en" ? "Read more" : "Sužinoti daugiau", href: withLocaleHref(locale, "/par-mums"), variant: "outline" },
                 ],
               },
               {
                 image: "https://images.unsplash.com/photo-1771354959667-96360bf59eab?auto=format&fit=crop&w=2400&q=80",
-                kicker: "IEEJAS DURVIS",
-                title: "Modernas ārdurvis Jūsu mājai",
-                subtitle: "Termodurvis ar augstu energoefektivitāti un skaņas izolāciju.",
+                kicker: locale === "lv" ? "IEEJAS DURVIS" : locale === "en" ? "ENTRANCE DOORS" : "LAUKO DURYS",
+                title: locale === "lv" ? "Modernas ārdurvis Jūsu mājai" : locale === "en" ? "Modern exterior doors for your home" : "Modernios lauko durys jūsų namams",
+                subtitle: locale === "lv" ? "Termodurvis ar augstu energoefektivitāti un skaņas izolāciju." : locale === "en" ? "Thermal doors with high energy efficiency and sound insulation." : "Termo durys su aukštu energiniu efektyvumu ir garso izoliacija.",
                 cta: [
-                  { label: "Skatīt kolekciju", href: "/kategorija/ardurvis-privatmajai" },
+                  { label: locale === "lv" ? "Skatīt kolekciju" : locale === "en" ? "View collection" : "Žiūrėti kolekciją", href: withLocaleHref(locale, "/kategorija/ardurvis-privatmajai") },
                 ],
               },
               {
                 image: "https://images.unsplash.com/photo-1742319096910-9efbcf6cddee?auto=format&fit=crop&w=2400&q=80",
-                kicker: "SALONI",
-                title: "Apmeklē mūsu salonus",
-                subtitle: "Uzzini par materiāliem un risinājumiem klātienē.",
+                kicker: locale === "lv" ? "SALONI" : locale === "en" ? "SHOWROOM" : "SALONAS",
+                title: locale === "lv" ? "Apmeklē mūsu salonu" : locale === "en" ? "Visit our showroom" : "Apsilankykite mūsų salone",
+                subtitle: locale === "lv" ? "Uzzini par materiāliem un risinājumiem klātienē." : locale === "en" ? "Learn about materials and solutions in person." : "Sužinokite apie medžiagas ir sprendimus gyvai.",
                 cta: [
-                  { label: "Atrast tuvāko", href: "/kontakti", variant: "outline" },
+                  { label: locale === "lv" ? "Atrast tuvāko" : locale === "en" ? "Find us" : "Rasti mus", href: withLocaleHref(locale, "/kontakti"), variant: "outline" },
                 ],
               },
             ]}
@@ -58,23 +66,24 @@ export default function Home() {
       {/* KATEGORIJAS */}
       <section>
         <div className="container">
-          <h2 className="mb-4">Populārās kategorijas</h2>
+          <h2 className="mb-4">{t(locale, "home.popularCategories")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {categories.map((c) => (
               (() => {
                 const categoryImage = categoryImages[c.slug] ?? null;
+                const categoryName = t(locale, `categories.${c.slug}`) || c.name;
 
                 return (
               <Link
                 key={c.slug}
-                href={`/kategorija/${c.slug}`}
+                href={withLocaleHref(locale, `/kategorija/${c.slug}`)}
                 className="group block overflow-hidden rounded-sm border border-line bg-white"
               >
                 <div className="relative aspect-4/3 bg-[--color-soft]">
                   {categoryImage ? (
                     <Image
                       src={categoryImage}
-                      alt={c.name}
+                      alt={categoryName}
                       fill
                       unoptimized
                       sizes="(max-width: 1024px) 50vw, 20vw"
@@ -85,7 +94,7 @@ export default function Home() {
                 </div>
                 <div className="p-3">
                   <div className="text-ink font-medium group-hover:text-ink">
-                    {c.name}
+                    {categoryName}
                   </div>
                 </div>
               </Link>
@@ -99,7 +108,7 @@ export default function Home() {
       {/* JAUNUMI */}
       <section>
         <div className="container">
-          <h2 className="mb-4">Jaunumi</h2>
+          <h2 className="mb-4">{t(locale, "home.newArrivals")}</h2>
           <div className="grid grid-flow-col auto-cols-[70%] sm:auto-cols-[45%] md:auto-cols-[30%] lg:auto-cols-[22%] gap-4 overflow-x-auto pb-2">
             {newProducts.map((p) => (
               <div key={p.id} className="min-w-0">
@@ -113,7 +122,7 @@ export default function Home() {
       {/* POPULĀRĀKĀS ĀRDURVIS */}
       <section>
         <div className="container">
-          <h2 className="mb-4">Populārākās ārdurvis</h2>
+          <h2 className="mb-4">{t(locale, "home.popularExterior")}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {popularExterior.map((p) => (
               <ProductCard key={p.id} product={p} />
@@ -127,10 +136,10 @@ export default function Home() {
         <div className="container">
           <div className="rounded-sm border border-line bg-accent text-white px-6 py-6 sm:px-10 sm:py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="text-lg sm:text-xl font-medium">
-              Nezini, kuras durvis izvēlēties? Sazinies ar mums bezmaksas konsultācijai.
+              {t(locale, "home.ctaTitle")}
             </div>
-            <Link href="/kontakti" className="bg-white text-ink rounded-sm px-5 py-2">
-              Sazināties
+            <Link href={withLocaleHref(locale, "/kontakti")} className="bg-white text-ink rounded-sm px-5 py-2">
+              {t(locale, "home.ctaButton")}
             </Link>
           </div>
         </div>

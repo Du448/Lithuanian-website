@@ -4,8 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { getLocaleFromPathname, t } from "@/lib/i18n";
 
 export default function HeroSlider({ slides }) {
+  const locale = getLocaleFromPathname(usePathname());
   const safeSlides = Array.isArray(slides) && slides.length > 0 ? slides : [];
   const [idx, setIdx] = useState(1);
   const [isAnimating, setIsAnimating] = useState(true);
@@ -71,7 +74,7 @@ export default function HeroSlider({ slides }) {
       onMouseLeave={() => setPaused(false)}
       onKeyDown={onKey}
       tabIndex={0}
-      aria-label="Hero karuselis"
+      aria-label={t(locale, "hero.carouselLabel")}
     >
       <div className="relative h-[80vh] lg:h-screen bg-[--color-soft]">
         {count ? (
@@ -84,7 +87,7 @@ export default function HeroSlider({ slides }) {
               <div key={i} className="relative w-full h-full flex-none">
                 <Image
                   src={slide.image}
-                  alt={slide.title || "Hero attēls"}
+                  alt={slide.title || t(locale, "hero.imageAlt")}
                   fill
                   unoptimized
                   priority={i === 0}
@@ -96,28 +99,30 @@ export default function HeroSlider({ slides }) {
                   <div className="absolute inset-0 flex items-center">
                     <div className="container">
                       <div className="px-6 sm:px-10 max-w-3xl">
-                        {slide.kicker ? (
-                          <div className="text-white/90 text-sm uppercase tracking-wide mb-2">{slide.kicker}</div>
-                        ) : null}
-                        {slide.title ? (
-                          <h1 className="text-white text-3xl sm:text-5xl font-semibold leading-tight">{slide.title}</h1>
-                        ) : null}
-                        {slide.subtitle ? (
-                          <p className="mt-3 text-white/90 text-base sm:text-lg">{slide.subtitle}</p>
-                        ) : null}
-                        {slide.cta ? (
-                          <div className="mt-6 flex flex-wrap gap-3">
-                            {slide.cta.map((btn, j) => (
-                              <Link
-                                key={j}
-                                href={btn.href}
-                                className={`${btn.variant === "outline" ? "border border-white text-white" : "bg-accent text-white"} rounded-sm px-5 py-2 hover:opacity-95`}
-                              >
-                                {btn.label}
-                              </Link>
-                            ))}
-                          </div>
-                        ) : null}
+                        <div className="rounded-sm border border-white/60 bg-white/85 backdrop-blur-sm p-5 sm:p-7 shadow-sm">
+                          {slide.kicker ? (
+                            <div className="text-muted text-sm uppercase tracking-wide mb-2">{slide.kicker}</div>
+                          ) : null}
+                          {slide.title ? (
+                            <h1 className="text-ink text-3xl sm:text-5xl font-semibold leading-tight">{slide.title}</h1>
+                          ) : null}
+                          {slide.subtitle ? (
+                            <p className="mt-3 text-ink/80 text-base sm:text-lg">{slide.subtitle}</p>
+                          ) : null}
+                          {slide.cta ? (
+                            <div className="mt-6 flex flex-wrap gap-3">
+                              {slide.cta.map((btn, j) => (
+                                <Link
+                                  key={j}
+                                  href={btn.href}
+                                  className={`${btn.variant === "outline" ? "border border-ink/30 bg-white text-ink" : "bg-accent text-white"} rounded-sm px-5 py-2 hover:opacity-95`}
+                                >
+                                  {btn.label}
+                                </Link>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -126,7 +131,7 @@ export default function HeroSlider({ slides }) {
             ))}
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted">Nav slaidu</div>
+          <div className="w-full h-full flex items-center justify-center text-muted">{t(locale, "hero.noSlides")}</div>
         )}
       </div>
 
@@ -137,7 +142,7 @@ export default function HeroSlider({ slides }) {
             type="button"
             onClick={() => go(idx - 1)}
             className="absolute left-2 top-1/2 -translate-y-1/2 rounded-sm bg-white/80 text-ink p-2 hover:bg-white"
-            aria-label="Iepriekšējais slaids"
+            aria-label={t(locale, "hero.prevSlide")}
           >
             <ChevronLeft />
           </button>
@@ -145,7 +150,7 @@ export default function HeroSlider({ slides }) {
             type="button"
             onClick={() => go(idx + 1)}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm bg-white/80 text-ink p-2 hover:bg-white"
-            aria-label="Nākamais slaids"
+            aria-label={t(locale, "hero.nextSlide")}
           >
             <ChevronRight />
           </button>
@@ -157,7 +162,7 @@ export default function HeroSlider({ slides }) {
                 type="button"
                 onClick={() => go(i)}
                 className={`h-2 w-2 rounded-full ${i === activeIndex ? "bg-white" : "bg-white/50"}`}
-                aria-label={`Dot uz ${i + 1}. slaidu`}
+                aria-label={t(locale, "hero.goToSlide").replace("{n}", String(i + 1))}
               />)
             )}
           </div>

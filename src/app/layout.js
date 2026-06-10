@@ -1,23 +1,27 @@
 import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { headers } from "next/headers";
+import { getLocaleFromPathname } from "@/lib/i18n";
 
 // Using system font stack via Tailwind's font-sans to avoid build-time fetch
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
-  title: "Durvju Nams — ārdurvis un iekšdurvis Latvijā",
+  title: "Durų Namai — lauko ir vidaus durys Lietuvoje",
   description:
-    "Durvju Nams: metāla ārdurvis un iekšdurvis, profesionāla montāža un piegāde visā Latvijā. Plašs sortiments, konsultācijas un garantija.",
+    "Durų Namai: lauko ir vidaus durys, profesionalus montavimas ir pristatymas visoje Lietuvoje. Platus asortimentas, konsultacijos ir garantija.",
   openGraph: {
-    title: "Durvju Nams — ārdurvis un iekšdurvis Latvijā",
+    title: "Durų Namai — lauko ir vidaus durys Lietuvoje",
     description:
-      "Durvju Nams: metāla ārdurvis un iekšdurvis, montāža un piegāde visā Latvijā.",
-    siteName: "Durvju Nams",
-    locale: "lv_LV",
+      "Durų Namai: lauko ir vidaus durys, montavimas ir pristatymas visoje Lietuvoje.",
+    siteName: "Durų Namai",
+    locale: "lt_LT",
     type: "website",
   },
   alternates: {
-    canonical: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+    canonical: process.env.NEXT_PUBLIC_SITE_URL || "https://tnbaltic.lt",
   },
   icons: {
     icon: "/favicon.ico",
@@ -25,9 +29,13 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const h = await headers();
+  const pathname = h.get("x-invoke-path") || "/";
+  const locale = getLocaleFromPathname(pathname);
+
   return (
-    <html lang="lv">
+    <html lang={locale}>
       <body className={`antialiased`}>
         <Header />
         {children}

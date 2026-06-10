@@ -1,10 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Heart, ArrowRight } from "lucide-react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { getLocaleFromPathname, withLocaleHref, t } from "@/lib/i18n";
+import { isWishlisted, toggleWishlistId } from "@/lib/wishlist";
 
 export default function ProductCard({ product }) {
+  const locale = getLocaleFromPathname(usePathname());
+  const [wishlisted, setWishlisted] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setWishlisted(isWishlisted(product.id));
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener("wishlist:change", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("wishlist:change", sync);
+    };
+  }, [product.id]);
   const hasOffer = product.oldPrice != null && product.oldPrice > product.price;
   const discount = hasOffer
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
@@ -12,7 +29,7 @@ export default function ProductCard({ product }) {
 
   return (
     <Link
-      href={`/produkts/${product.id}`}
+      href={withLocaleHref(locale, `/produkts/${product.id}`)}
       className="group block rounded-sm border border-line bg-white p-3 cursor-pointer"
     >
       {/* Image area */}
@@ -30,7 +47,7 @@ export default function ProductCard({ product }) {
           </div>
         ) : (
           <div className="aspect-3/4 bg-[--color-soft] flex items-center justify-center text-muted text-sm">
-            <span>Attēls</span>
+            <span>{t(locale, "product.image")}</span>
           </div>
         )}
         {/* Hover overlay */}
@@ -42,22 +59,23 @@ export default function ProductCard({ product }) {
         <div className="absolute left-2 top-2 flex flex-col gap-1">
           {hasOffer && (
             <span className="rounded-sm bg-accent px-2 py-0.5 text-xs font-medium text-white">
-              Piedāvājums
+              {t(locale, "product.offerBadge")}
             </span>
           )}
           {product.isNew && (
             <span className="rounded-sm bg-ink px-2 py-0.5 text-xs font-medium text-white">
-              Jaunums
+              {t(locale, "product.newBadge")}
             </span>
           )}
         </div>
         {/* Wishlist icon */}
         <button
           type="button"
-          aria-label="Pievienot vēlmēm"
-          className="absolute right-2 top-2 rounded-sm bg-white/80 p-1 text-ink shadow-sm transition-colors hover:bg-white"
+          aria-label={t(locale, "a11y.addWishlist")}
+          className={`absolute right-2 top-2 rounded-sm bg-white/80 p-1 shadow-sm transition-colors hover:bg-white ${wishlisted ? "text-accent" : "text-ink"}`}
           onClick={(e) => {
             e.preventDefault();
+            toggleWishlistId(product.id);
           }}
         >
           <Heart size={18} />

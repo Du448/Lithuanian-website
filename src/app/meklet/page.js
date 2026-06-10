@@ -1,12 +1,37 @@
 import { Suspense } from "react";
 import SearchClient from "@/components/SearchClient";
+import { headers } from "next/headers";
+import { getLocaleFromPathname, t } from "@/lib/i18n";
 
-export const metadata = { title: "Meklēšana" };
+export async function generateMetadata() {
+  const h = await headers();
+  const pathname = h.get("x-invoke-path") || "/";
+  const locale = getLocaleFromPathname(pathname);
 
-export default function SearchPage() {
+  const title = `${t(locale, "search.title")} | Durų Namai`;
+  const description = t(locale, "search.results");
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      locale: locale === "lv" ? "lv_LV" : locale === "en" ? "en_US" : "lt_LT",
+      siteName: "Durų Namai",
+      type: "website",
+    },
+  };
+}
+
+export default async function SearchPage() {
+  const h = await headers();
+  const pathname = h.get("x-invoke-path") || "/";
+  const locale = getLocaleFromPathname(pathname);
+
   return (
     <main>
-      <Suspense fallback={<div className="container py-6 text-muted">Ielādē meklēšanas rezultātus…</div>}>
+      <Suspense fallback={<div className="container py-6 text-muted">{t(locale, "loading.search")}</div>}>
         <SearchClient />
       </Suspense>
     </main>

@@ -1,24 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Heart, Shield } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import { getProductById, getProductsByCategory } from "@/data/products";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { getLocaleFromPathname, translateColorLabel, withLocaleHref, t } from "@/lib/i18n";
+import { isWishlisted, toggleWishlistId } from "@/lib/wishlist";
 
 export default function ProductClient({ id }) {
+  const locale = getLocaleFromPathname(usePathname());
   const product = getProductById(id);
   const productImages = product?.images && product.images.length > 0 ? product.images : ["placeholder"];
   const [activeIdx, setActiveIdx] = useState(0);
   const [activeSize, setActiveSize] = useState(product?.sizes?.[0] || "");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(0);
+  const [wishlisted, setWishlisted] = useState(false);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    const sync = () => setWishlisted(isWishlisted(product.id));
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener("wishlist:change", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("wishlist:change", sync);
+    };
+  }, [product?.id]);
 
   if (!product) {
     return (
       <main className="container py-10">
-        <div className="text-ink">Produkts nav atrasts</div>
+        <div className="text-ink">{t(locale, "product.notFound")}</div>
       </main>
     );
   }
@@ -36,14 +53,14 @@ export default function ProductClient({ id }) {
       {
         "@type": "ListItem",
         position: 1,
-        name: "Sākums",
-        item: "/",
+        name: t(locale, "common.home"),
+        item: withLocaleHref(locale, "/"),
       },
       {
         "@type": "ListItem",
         position: 2,
         name: product.name,
-        item: `/produkts/${product.id}`,
+        item: withLocaleHref(locale, `/produkts/${product.id}`),
       },
     ],
   };
@@ -55,7 +72,7 @@ export default function ProductClient({ id }) {
       <section className="border-b border-line">
         <div className="container py-6">
           <div className="text-sm text-muted">
-            <Link className="text-ink hover:text-ink" href="/">Sākums</Link>
+            <Link className="text-ink hover:text-ink" href={withLocaleHref(locale, "/")}>{t(locale, "common.home")}</Link>
             <span className="mx-1 text-muted">/</span>
             <span className="text-ink">{product.name}</span>
           </div>
@@ -70,7 +87,7 @@ export default function ProductClient({ id }) {
               <div className="relative overflow-hidden rounded-sm border border-line">
                 {images[activeIdx] === "placeholder" ? (
                   <div className="w-full aspect-[3/4] bg-[--color-soft] flex items-center justify-center text-muted">
-                    <span>Attēls</span>
+                    <span>{t(locale, "product.image")}</span>
                   </div>
                 ) : (
                   <button
@@ -80,7 +97,7 @@ export default function ProductClient({ id }) {
                       setLightboxOpen(true);
                     }}
                     className="relative block w-full aspect-[3/4]"
-                    aria-label="Atvērt attēlu pilnā izmērā"
+                    aria-label={t(locale, "product.openImage")}
                   >
                     <Image
                       src={images[activeIdx]}
@@ -101,10 +118,10 @@ export default function ProductClient({ id }) {
                     key={idx}
                     className={`aspect-square rounded-sm border ${idx === activeIdx ? "border-[--color-accent]" : "border-line"} bg-[--color-soft] text-xs text-muted`}
                     onClick={() => setActiveIdx(idx)}
-                    aria-label={`Attēls ${idx + 1}`}
+                    aria-label={t(locale, "product.imageN").replace("{n}", String(idx + 1))}
                   >
                     {src === "placeholder" ? (
-                      "Attēls"
+                      t(locale, "product.image")
                     ) : (
                       <span className="relative block h-full w-full overflow-hidden">
                         <Image
@@ -143,13 +160,13 @@ export default function ProductClient({ id }) {
               {/* Colors (display only: exterior / interior) */}
               {product.colors?.length ? (
                 <div className="mt-5">
-                  <div className="text-sm text-muted mb-2">Krāsa (ārpuse / iekšpuse):</div>
+                  <div className="text-sm text-muted mb-2">{t(locale, "product.colorLabel")}</div>
                   <div className="flex flex-wrap items-center gap-2 text-[15px] text-ink">
-                    <span className="rounded-sm border border-line px-3 py-1.5">{product.colors[0]}</span>
+                    <span className="rounded-sm border border-line px-3 py-1.5">{translateColorLabel(locale, product.colors[0])}</span>
                     {product.colors[1] ? (
                       <>
                         <span className="text-muted">/</span>
-                        <span className="rounded-sm border border-line px-3 py-1.5">{product.colors[1]}</span>
+                        <span className="rounded-sm border border-line px-3 py-1.5">{translateColorLabel(locale, product.colors[1])}</span>
                       </>
                     ) : null}
                   </div>
@@ -159,7 +176,7 @@ export default function ProductClient({ id }) {
               {/* Sizes */}
               {product.sizes?.length ? (
                 <div className="mt-5">
-                  <div className="text-sm text-muted mb-2">Izmērs:</div>
+                  <div className="text-sm text-muted mb-2">{t(locale, "product.size")}</div>
                   <select
                     value={activeSize}
                     onChange={(e) => setActiveSize(e.target.value)}
@@ -182,52 +199,92 @@ export default function ProductClient({ id }) {
 
               {/* Actions */}
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href={`/kontakti?produkts=${encodeURIComponent(product.id)}`} className="bg-accent hover:bg-accent-dark text-white rounded-sm px-5 py-2">
-                  Pieprasīt piedāvājumu
+                <Link href={withLocaleHref(locale, `/kontakti?produkts=${encodeURIComponent(product.id)}`)} className="bg-accent hover:bg-accent-dark text-white rounded-sm px-5 py-2">
+                  {t(locale, "product.requestOffer")}
                 </Link>
-                <button type="button" className="rounded-sm border border-line px-5 py-2 text-ink inline-flex items-center gap-2">
+                <button
+                  type="button"
+                  className={`rounded-sm border border-line px-5 py-2 inline-flex items-center gap-2 ${wishlisted ? "text-accent" : "text-ink"}`}
+                  onClick={() => toggleWishlistId(product.id)}
+                >
                   <Heart size={18} />
-                  Pievienot vēlmēm
+                  {t(locale, "product.addWishlist")}
                 </button>
               </div>
 
-              <div className="mt-3 text-[15px] text-muted">Bezmaksas uzmērīšana · Montāža · Piegāde visā Latvijā</div>
+              <div className="mt-3 text-[15px] text-muted">{t(locale, "product.freeServices")}</div>
 
               {/* Accordions */}
               <div className="mt-6 divide-y divide-[--color-line] border border-line rounded-sm bg-white">
                 <details className="group p-4">
                   <summary className="flex cursor-pointer list-none items-center justify-between text-ink">
-                    <span className="font-medium">Specifikācija</span>
+                    <span className="font-medium">{t(locale, "product.specs")}</span>
                     <span className="text-muted">+</span>
                   </summary>
                   <div className="mt-3 text-[15px] text-ink">
                     <ul className="list-disc pl-5">
-                      {Object.entries(product.specs || {}).map(([k, v]) => (
-                        <li key={k}><span className="text-muted">{k}:</span> {v}</li>
-                      ))}
+                      {Object.entries(product.specs || {}).map(([k, v]) => {
+                        const labelKey =
+                          k === "Vērtnes biezums"
+                            ? "specs.leafThickness"
+                            : k === "Kārbas biezums"
+                              ? "specs.frameThickness"
+                              : k === "Svars"
+                                ? "specs.weight"
+                                : k === "Slēdzenes"
+                                  ? "specs.locks"
+                                  : k === "Pildījums"
+                                    ? "specs.filling"
+                                    : k === "Ārējā apdare"
+                                      ? "specs.outsideFinish"
+                                      : k === "Iekšējā apdare"
+                                        ? "specs.insideFinish"
+                                        : k === "Apdare"
+                                          ? "specs.finish"
+                                          : k === "Actiņa"
+                                            ? "specs.peephole"
+                                            : k === "Furnitūra"
+                                              ? "specs.hardware"
+                                              : null;
+
+                        const label = labelKey ? t(locale, labelKey) : k;
+                        const rawValue = typeof v === "string" ? v : String(v);
+                        const value =
+                          rawValue === "Ir"
+                            ? t(locale, "values.yes")
+                            : rawValue === "Nav"
+                              ? t(locale, "values.no")
+                              : rawValue;
+
+                        return (
+                          <li key={k}>
+                            <span className="text-muted">{label}:</span> {value}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 </details>
                 <details className="group p-4">
                   <summary className="flex cursor-pointer list-none items-center justify-between text-ink">
-                    <span className="font-medium">Komplektācija</span>
+                    <span className="font-medium">{t(locale, "product.set")}</span>
                     <span className="text-muted">+</span>
                   </summary>
-                  <div className="mt-3 text-[15px] text-ink">Pilns komplekts ar furnitūru. (Aizstāj ar precīzu saturu.)</div>
+                  <div className="mt-3 text-[15px] text-ink">{t(locale, "pages.services.description")}</div>
                 </details>
                 <details className="group p-4">
                   <summary className="flex cursor-pointer list-none items-center justify-between text-ink">
-                    <span className="font-medium">Montāža un piegāde</span>
+                    <span className="font-medium">{t(locale, "product.installDelivery")}</span>
                     <span className="text-muted">+</span>
                   </summary>
-                  <div className="mt-3 text-[15px] text-ink">Piedāvājam profesionālu montāžu un piegādi visā Latvijā.</div>
+                  <div className="mt-3 text-[15px] text-ink">{t(locale, "product.freeServices")}</div>
                 </details>
                 <details className="group p-4">
                   <summary className="flex cursor-pointer list-none items-center justify-between text-ink">
-                    <span className="font-medium">Garantija</span>
+                    <span className="font-medium">{t(locale, "product.warranty")}</span>
                     <span className="text-muted">+</span>
                   </summary>
-                  <div className="mt-3 text-[15px] text-ink">Garantija saskaņā ar ražotāja noteikumiem.</div>
+                  <div className="mt-3 text-[15px] text-ink">{t(locale, "pages.about.featuresDesc3")}</div>
                 </details>
               </div>
             </div>
@@ -238,7 +295,7 @@ export default function ProductClient({ id }) {
       {/* Similar products */}
       <section>
         <div className="container">
-          <h2 className="mb-4">Līdzīgi modeļi</h2>
+          <h2 className="mb-4">{t(locale, "product.similar")}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {similar.map((p) => (
               <ProductCard key={p.id} product={p} />
@@ -256,7 +313,7 @@ export default function ProductClient({ id }) {
             <button
               type="button"
               className="absolute right-2 top-2 text-white text-xl"
-              aria-label="Aizvērt"
+              aria-label={t(locale, "product.close")}
               onClick={() => setLightboxOpen(false)}
             >
               ✕
@@ -278,7 +335,7 @@ export default function ProductClient({ id }) {
                 className="rounded-sm border border-line bg-white/10 text-white px-3 py-1.5"
                 onClick={() => setLightboxIdx((i) => (i - 1 + images.length) % images.length)}
               >
-                Iepriekšējais
+                {t(locale, "product.previous")}
               </button>
               <div className="text-white text-sm">
                 {lightboxIdx + 1} / {images.length}
@@ -288,7 +345,7 @@ export default function ProductClient({ id }) {
                 className="rounded-sm border border-line bg-white/10 text-white px-3 py-1.5"
                 onClick={() => setLightboxIdx((i) => (i + 1) % images.length)}
               >
-                Nākamais
+                {t(locale, "product.next")}
               </button>
             </div>
             <div className="mt-3 grid grid-cols-5 gap-2">
@@ -297,7 +354,7 @@ export default function ProductClient({ id }) {
                   key={idx}
                   className={`aspect-square rounded-sm border ${idx === lightboxIdx ? 'border-[--color-accent]' : 'border-line'} bg-[--color-soft]`}
                   onClick={() => setLightboxIdx(idx)}
-                  aria-label={`Lightbox attēls ${idx + 1}`}
+                  aria-label={t(locale, "product.imageN").replace("{n}", String(idx + 1))}
                 >
                   <span className="relative block h-full w-full overflow-hidden">
                     <Image src={src} alt={`${product.name} thumbnails`} fill unoptimized referrerPolicy="no-referrer" sizes="100px" className="object-contain" />
