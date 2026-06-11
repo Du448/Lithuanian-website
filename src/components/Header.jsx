@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Heart, ShoppingCart, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { gsap } from "gsap";
 import { getLocaleFromPathname, withLocaleHref, locales, t } from "@/lib/i18n";
 import { readWishlistIds } from "@/lib/wishlist";
 
@@ -17,7 +18,7 @@ function NavLink({ href, children, highlight, overlay = false }) {
       <span className="inline-block">
         {children}
       </span>
-      <span className="pointer-events-none absolute inset-x-1 -bottom-0.5 h-[2px] scale-x-0 bg-accent transition-transform duration-200 ease-out group-hover:scale-x-100"></span>
+      <span className="pointer-events-none absolute inset-x-1 -bottom-0.5 h-[2px] origin-left scale-x-0 bg-accent transition-transform duration-300 ease-out group-hover:scale-x-100"></span>
     </Link>
   );
 }
@@ -28,6 +29,9 @@ export default function Header() {
   const router = useRouter();
   const [showSearch, setShowSearch] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+  const headerRef = useRef(null);
+  const hiddenRef = useRef(false);
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname);
   const isHome = pathname === `/${locale}` || pathname === `/${locale}/`;
@@ -52,6 +56,58 @@ export default function Header() {
     };
   }, [open]);
 
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || isHome) return;
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let lastY = window.scrollY;
+
+    const reveal = () => {
+      hiddenRef.current = false;
+      gsap.to(el, {
+        yPercent: 0,
+        duration: 0.45,
+        ease: "power3.out",
+        overwrite: true,
+        onComplete: () => gsap.set(el, { clearProps: "transform" }),
+      });
+    };
+
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 8);
+      if (!reduce) {
+        const goingDown = y > lastY;
+        if (goingDown && y > 180 && !hiddenRef.current) {
+          hiddenRef.current = true;
+          gsap.to(el, { yPercent: -100, duration: 0.45, ease: "power3.out", overwrite: true });
+        } else if (!goingDown && hiddenRef.current) {
+          reveal();
+        }
+      }
+      lastY = y;
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      gsap.killTweensOf(el);
+      gsap.set(el, { clearProps: "transform" });
+      hiddenRef.current = false;
+    };
+  }, [isHome, pathname]);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    if (open || showSearch) {
+      gsap.killTweensOf(el);
+      gsap.set(el, { clearProps: "transform" });
+      hiddenRef.current = false;
+    }
+  }, [open, showSearch]);
+
   const pathnameWithoutLocale = (() => {
     const parts = pathname.split("/").filter(Boolean);
     if (locales.includes(parts[0])) {
@@ -67,7 +123,10 @@ export default function Header() {
   };
 
   return (
-    <header className={`${isHome ? "absolute" : "sticky"} top-0 z-50 w-full ${isHome ? "bg-transparent" : "bg-bg/95 backdrop-blur supports-backdrop-filter:bg-bg/80"}`}>
+    <header
+      ref={headerRef}
+      className={`${isHome ? "absolute" : "sticky"} top-0 z-50 w-full will-change-transform ${isHome ? "bg-transparent" : "bg-bg/95 backdrop-blur supports-backdrop-filter:bg-bg/80"} ${!isHome && scrolled ? "shadow-[0_2px_16px_rgba(0,0,0,0.07)]" : ""} transition-shadow duration-300`}
+    >
       {/* Top promo bar */}
       <div className={`text-white text-center text-xs sm:text-sm py-2 ${isHome ? "bg-accent/90" : "bg-accent"}`}>
         {t(locale, "header.promo")}

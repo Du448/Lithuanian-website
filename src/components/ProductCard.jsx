@@ -30,7 +30,7 @@ export default function ProductCard({ product }) {
   return (
     <Link
       href={withLocaleHref(locale, `/produkts/${product.id}`)}
-      className="group block rounded-sm border border-line bg-white p-3 cursor-pointer"
+      className="group block rounded-sm border border-line bg-white p-3 cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-transparent hover:shadow-[0_16px_40px_-16px_rgba(0,0,0,0.22)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
       {/* Image area */}
       <div className="relative mb-3 overflow-hidden rounded-sm">
@@ -42,7 +42,7 @@ export default function ProductCard({ product }) {
               fill
               unoptimized
               sizes="(max-width: 768px) 100vw, 25vw"
-              className="object-contain transition-opacity duration-200 group-hover:opacity-95"
+              className="object-contain transition-transform duration-500 ease-out will-change-transform group-hover:scale-[1.06] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
             />
           </div>
         ) : (
@@ -51,9 +51,11 @@ export default function ProductCard({ product }) {
           </div>
         )}
         {/* Hover overlay */}
-        <div className="pointer-events-none absolute inset-0 bg-ink/0 transition-colors duration-200 group-hover:bg-ink/5" />
-        <div className="pointer-events-none absolute right-2 bottom-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <ArrowRight size={18} className="text-ink" />
+        <div className="pointer-events-none absolute inset-0 bg-ink/0 transition-colors duration-300 group-hover:bg-ink/5" />
+        <div className="pointer-events-none absolute right-2 bottom-2 translate-y-2 opacity-0 transition-[transform,opacity] duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none motion-reduce:translate-y-0">
+          <span className="inline-flex items-center justify-center rounded-full bg-white/90 p-1.5 shadow-sm">
+            <ArrowRight size={16} className="text-ink" />
+          </span>
         </div>
         {/* Badges */}
         <div className="absolute left-2 top-2 flex flex-col gap-1">
@@ -72,7 +74,7 @@ export default function ProductCard({ product }) {
         <button
           type="button"
           aria-label={t(locale, "a11y.addWishlist")}
-          className={`absolute right-2 top-2 rounded-sm bg-white/80 p-1 shadow-sm transition-colors hover:bg-white ${wishlisted ? "text-accent" : "text-ink"}`}
+          className={`absolute right-2 top-2 rounded-sm bg-white/80 p-1.5 shadow-sm transition-[background-color,transform] duration-200 hover:bg-white hover:scale-110 active:scale-90 ${wishlisted ? "text-accent" : "text-ink"}`}
           onClick={(e) => {
             e.preventDefault();
             toggleWishlistId(product.id);

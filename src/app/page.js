@@ -3,6 +3,8 @@ import Image from "next/image";
 import { categories, products } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
 import HeroSlider from "@/components/HeroSlider";
+import RevealGrid from "@/components/anim/RevealGrid";
+import MagneticButton from "@/components/anim/MagneticButton";
 import { headers } from "next/headers";
 import { getLocaleFromPathname, withLocaleHref, t } from "@/lib/i18n";
 
@@ -67,7 +69,7 @@ export default async function Home() {
       <section>
         <div className="container">
           <h2 className="mb-4">{t(locale, "home.popularCategories")}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <RevealGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {categories.map((c) => (
               (() => {
                 const categoryImage = categoryImages[c.slug] ?? null;
@@ -77,9 +79,9 @@ export default async function Home() {
               <Link
                 key={c.slug}
                 href={withLocaleHref(locale, `/kategorija/${c.slug}`)}
-                className="group block overflow-hidden rounded-sm border border-line bg-white"
+                className="group block overflow-hidden rounded-sm border border-line bg-white transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_16px_40px_-16px_rgba(0,0,0,0.22)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
               >
-                <div className="relative aspect-4/3 bg-[--color-soft]">
+                <div className="relative aspect-4/3 overflow-hidden bg-[--color-soft]">
                   {categoryImage ? (
                     <Image
                       src={categoryImage}
@@ -87,10 +89,10 @@ export default async function Home() {
                       fill
                       unoptimized
                       sizes="(max-width: 1024px) 50vw, 20vw"
-                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      className="object-cover transition-transform duration-500 ease-out will-change-transform group-hover:scale-[1.06] motion-reduce:transition-none"
                     />
                   ) : null}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                 </div>
                 <div className="p-3">
                   <div className="text-ink font-medium group-hover:text-ink">
@@ -101,7 +103,7 @@ export default async function Home() {
                 );
               })()
             ))}
-          </div>
+          </RevealGrid>
         </div>
       </section>
 
@@ -109,13 +111,13 @@ export default async function Home() {
       <section>
         <div className="container">
           <h2 className="mb-4">{t(locale, "home.newArrivals")}</h2>
-          <div className="grid grid-flow-col auto-cols-[70%] sm:auto-cols-[45%] md:auto-cols-[30%] lg:auto-cols-[22%] gap-4 overflow-x-auto pb-2">
+          <RevealGrid className="grid grid-flow-col auto-cols-[70%] sm:auto-cols-[45%] md:auto-cols-[30%] lg:auto-cols-[22%] gap-4 overflow-x-auto pb-2">
             {newProducts.map((p) => (
               <div key={p.id} className="min-w-0">
                 <ProductCard product={p} />
               </div>
             ))}
-          </div>
+          </RevealGrid>
         </div>
       </section>
 
@@ -123,11 +125,11 @@ export default async function Home() {
       <section>
         <div className="container">
           <h2 className="mb-4">{t(locale, "home.popularExterior")}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <RevealGrid className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {popularExterior.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
-          </div>
+          </RevealGrid>
         </div>
       </section>
 
@@ -138,9 +140,14 @@ export default async function Home() {
             <div className="text-lg sm:text-xl font-medium">
               {t(locale, "home.ctaTitle")}
             </div>
-            <Link href={withLocaleHref(locale, "/kontakti")} className="bg-white text-ink rounded-sm px-5 py-2">
-              {t(locale, "home.ctaButton")}
-            </Link>
+            <MagneticButton>
+              <Link
+                href={withLocaleHref(locale, "/kontakti")}
+                className="inline-block bg-white text-ink rounded-sm px-6 py-2.5 transition-shadow duration-300 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.4)]"
+              >
+                {t(locale, "home.ctaButton")}
+              </Link>
+            </MagneticButton>
           </div>
         </div>
       </section>

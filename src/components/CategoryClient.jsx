@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import ProductCard from "@/components/ProductCard";
+import RevealGrid from "@/components/anim/RevealGrid";
 import { getProductsByCategory, getCategoryBySlug, collections } from "@/data/products";
 import { usePathname } from "next/navigation";
 import { getLocaleFromPathname, withLocaleHref, t } from "@/lib/i18n";
@@ -169,13 +170,13 @@ export default function CategoryClient({ slug }) {
   const Filters = (
     <div className="w-full max-w-[260px] shrink-0">
       <div className="mb-6">
-        <div className="mb-2 text-sm font-semibold tracking-wide text-ink">{t(locale, "category.collection")}</div>
-        <div className="space-y-1">
+        <div className="mb-3 border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">{t(locale, "category.collection")}</div>
+        <div className="space-y-0.5">
           {collectionOptions.map((c) => (
-            <label key={c} className="flex items-center gap-2 text-[15px] text-ink">
+            <label key={c} className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
               <input
                 type="checkbox"
-                className="accent-[--color-accent]"
+                className="h-4 w-4 accent-[--color-accent]"
                 checked={selectedCollections.includes(c)}
                 onChange={() => toggleIn(selectedCollections, setSelectedCollections, c)}
               />
@@ -186,13 +187,13 @@ export default function CategoryClient({ slug }) {
       </div>
 
       <div className="mb-6">
-        <div className="mb-2 text-sm font-semibold tracking-wide text-ink">{t(locale, "category.color")}</div>
-        <div className="space-y-1">
+        <div className="mb-3 border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">{t(locale, "category.color")}</div>
+        <div className="space-y-0.5">
           {colorOptions.map((c) => (
-            <label key={c} className="flex items-center gap-2 text-[15px] text-ink">
+            <label key={c} className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
               <input
                 type="checkbox"
-                className="accent-[--color-accent]"
+                className="h-4 w-4 accent-[--color-accent]"
                 checked={selectedColors.includes(c)}
                 onChange={() => toggleIn(selectedColors, setSelectedColors, c)}
               />
@@ -203,7 +204,7 @@ export default function CategoryClient({ slug }) {
       </div>
 
       <div className="mb-6">
-        <div className="mb-2 text-sm font-semibold tracking-wide text-ink">{t(locale, "category.price")}</div>
+        <div className="mb-3 border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">{t(locale, "category.price")}</div>
         <div className="flex items-center gap-2">
           <input
             type="number"
@@ -211,7 +212,7 @@ export default function CategoryClient({ slug }) {
             placeholder={t(locale, "category.from")}
             value={priceMin}
             onChange={(e) => setPriceMin(e.target.value)}
-            className="w-24 rounded-sm border border-line bg-white px-2 py-1 text-[15px]"
+            className="min-h-10 w-24 rounded-sm border border-line bg-white px-2 py-1 text-[15px] transition-colors focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
           />
           <span className="text-muted">—</span>
           <input
@@ -220,40 +221,40 @@ export default function CategoryClient({ slug }) {
             placeholder={t(locale, "category.to")}
             value={priceMax}
             onChange={(e) => setPriceMax(e.target.value)}
-            className="w-24 rounded-sm border border-line bg-white px-2 py-1 text-[15px]"
+            className="min-h-10 w-24 rounded-sm border border-line bg-white px-2 py-1 text-[15px] transition-colors focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
           />
         </div>
       </div>
 
       {isPrivateHouse && (
         <div className="mb-6">
-          <div className="mb-2 text-sm font-semibold tracking-wide text-ink">{t(locale, "category.thermo")}</div>
-          <div className="space-y-1">
-            <label className="flex items-center gap-2 text-[15px] text-ink">
+          <div className="mb-3 border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">{t(locale, "category.thermo")}</div>
+          <div className="space-y-0.5">
+            <label className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
               <input
                 type="radio"
                 name="thermo"
-                className="accent-[--color-accent]"
+                className="h-4 w-4 accent-[--color-accent]"
                 checked={thermoFilter === "all"}
                 onChange={() => setThermoFilter("all")}
               />
               <span>{t(locale, "category.all")}</span>
             </label>
-            <label className="flex items-center gap-2 text-[15px] text-ink">
+            <label className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
               <input
                 type="radio"
                 name="thermo"
-                className="accent-[--color-accent]"
+                className="h-4 w-4 accent-[--color-accent]"
                 checked={thermoFilter === "yes"}
                 onChange={() => setThermoFilter("yes")}
               />
               <span>{t(locale, "category.yes")}</span>
             </label>
-            <label className="flex items-center gap-2 text-[15px] text-ink">
+            <label className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
               <input
                 type="radio"
                 name="thermo"
-                className="accent-[--color-accent]"
+                className="h-4 w-4 accent-[--color-accent]"
                 checked={thermoFilter === "no"}
                 onChange={() => setThermoFilter("no")}
               />
@@ -263,7 +264,10 @@ export default function CategoryClient({ slug }) {
         </div>
       )}
 
-      <button onClick={clearFilters} className="rounded-sm border border-line px-3 py-1.5 text-[15px] text-ink">
+      <button
+        onClick={clearFilters}
+        className="min-h-11 rounded-sm border border-line px-4 py-1.5 text-[15px] text-ink transition-[border-color,transform] duration-200 hover:border-[--color-muted] active:scale-[0.97]"
+      >
         {t(locale, "category.clearFilters")}
       </button>
     </div>
@@ -292,7 +296,7 @@ export default function CategoryClient({ slug }) {
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
-                className="rounded-sm border border-line bg-white px-2 py-1 text-[15px] text-ink"
+                className="min-h-10 rounded-sm border border-line bg-white px-2 py-1 text-[15px] text-ink transition-colors hover:border-[--color-muted] focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
               >
                 <option value="popular">{t(locale, "category.sortPopular")}</option>
                 <option value="cheap">{t(locale, "category.sortCheap")}</option>
@@ -300,7 +304,7 @@ export default function CategoryClient({ slug }) {
                 <option value="new">{t(locale, "category.sortNew")}</option>
               </select>
               <button
-                className="md:hidden rounded-sm border border-line px-3 py-1.5 text-[15px] text-ink"
+                className="md:hidden min-h-10 rounded-sm border border-line px-4 py-1.5 text-[15px] text-ink transition-colors active:bg-[--color-soft]"
                 onClick={() => setMobileFiltersOpen(true)}
               >
                 {t(locale, "category.filters")}
@@ -311,22 +315,31 @@ export default function CategoryClient({ slug }) {
           <div className="flex gap-6">
             <div className="hidden md:block">{Filters}</div>
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <RevealGrid
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                revealKey={`${slug}|${sort}|${filtered.map((p) => p.id).join(",")}`}
+              >
                 {filtered.map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}
-              </div>
+              </RevealGrid>
             </div>
           </div>
         </div>
       </section>
 
       {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 md:hidden" onClick={() => setMobileFiltersOpen(false)}>
-          <div className="absolute inset-y-0 right-0 w-[85%] max-w-[320px] bg-white p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/40 md:hidden animate-fade-in" onClick={() => setMobileFiltersOpen(false)}>
+          <div
+            className="absolute inset-y-0 right-0 w-[85%] max-w-[320px] overflow-y-auto bg-white p-4 animate-drawer-in"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-3 flex items-center justify-between">
               <div className="text-sm font-semibold text-ink">{t(locale, "category.filters")}</div>
-              <button className="rounded-sm border border-line px-2 py-1 text-[15px]" onClick={() => setMobileFiltersOpen(false)}>
+              <button
+                className="min-h-10 rounded-sm border border-line px-3 py-1 text-[15px] transition-colors active:bg-[--color-soft]"
+                onClick={() => setMobileFiltersOpen(false)}
+              >
                 {t(locale, "category.close")}
               </button>
             </div>

@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Heart, Shield } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
+import AccordionItem from "@/components/anim/AccordionItem";
+import MagneticButton from "@/components/anim/MagneticButton";
+import RevealGrid from "@/components/anim/RevealGrid";
 import { getProductById, getProductsByCategory } from "@/data/products";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -180,7 +183,7 @@ export default function ProductClient({ id }) {
                   <select
                     value={activeSize}
                     onChange={(e) => setActiveSize(e.target.value)}
-                    className="rounded-sm border border-line bg-white px-2 py-2 text-[15px] text-ink"
+                    className="min-h-11 rounded-sm border border-line bg-white px-3 py-2 text-[15px] text-ink transition-colors hover:border-[--color-muted] focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
                   >
                     {product.sizes.map((s) => (
                       <option key={s} value={s}>{s}</option>
@@ -199,12 +202,17 @@ export default function ProductClient({ id }) {
 
               {/* Actions */}
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href={withLocaleHref(locale, `/kontakti?produkts=${encodeURIComponent(product.id)}`)} className="bg-accent hover:bg-accent-dark text-white rounded-sm px-5 py-2">
-                  {t(locale, "product.requestOffer")}
-                </Link>
+                <MagneticButton>
+                  <Link
+                    href={withLocaleHref(locale, `/kontakti?produkts=${encodeURIComponent(product.id)}`)}
+                    className="inline-block bg-accent hover:bg-accent-dark text-white rounded-sm px-6 py-2.5 transition-colors duration-300"
+                  >
+                    {t(locale, "product.requestOffer")}
+                  </Link>
+                </MagneticButton>
                 <button
                   type="button"
-                  className={`rounded-sm border border-line px-5 py-2 inline-flex items-center gap-2 ${wishlisted ? "text-accent" : "text-ink"}`}
+                  className={`rounded-sm border border-line px-5 py-2.5 inline-flex items-center gap-2 transition-[border-color,transform] duration-200 hover:border-[--color-muted] active:scale-[0.97] ${wishlisted ? "text-accent" : "text-ink"}`}
                   onClick={() => toggleWishlistId(product.id)}
                 >
                   <Heart size={18} />
@@ -216,12 +224,7 @@ export default function ProductClient({ id }) {
 
               {/* Accordions */}
               <div className="mt-6 divide-y divide-[--color-line] border border-line rounded-sm bg-white">
-                <details className="group p-4">
-                  <summary className="flex cursor-pointer list-none items-center justify-between text-ink">
-                    <span className="font-medium">{t(locale, "product.specs")}</span>
-                    <span className="text-muted">+</span>
-                  </summary>
-                  <div className="mt-3 text-[15px] text-ink">
+                <AccordionItem title={t(locale, "product.specs")} defaultOpen>
                     <ul className="list-disc pl-5">
                       {Object.entries(product.specs || {}).map(([k, v]) => {
                         const labelKey =
@@ -263,29 +266,16 @@ export default function ProductClient({ id }) {
                         );
                       })}
                     </ul>
-                  </div>
-                </details>
-                <details className="group p-4">
-                  <summary className="flex cursor-pointer list-none items-center justify-between text-ink">
-                    <span className="font-medium">{t(locale, "product.set")}</span>
-                    <span className="text-muted">+</span>
-                  </summary>
-                  <div className="mt-3 text-[15px] text-ink">{t(locale, "pages.services.description")}</div>
-                </details>
-                <details className="group p-4">
-                  <summary className="flex cursor-pointer list-none items-center justify-between text-ink">
-                    <span className="font-medium">{t(locale, "product.installDelivery")}</span>
-                    <span className="text-muted">+</span>
-                  </summary>
-                  <div className="mt-3 text-[15px] text-ink">{t(locale, "product.freeServices")}</div>
-                </details>
-                <details className="group p-4">
-                  <summary className="flex cursor-pointer list-none items-center justify-between text-ink">
-                    <span className="font-medium">{t(locale, "product.warranty")}</span>
-                    <span className="text-muted">+</span>
-                  </summary>
-                  <div className="mt-3 text-[15px] text-ink">{t(locale, "pages.about.featuresDesc3")}</div>
-                </details>
+                </AccordionItem>
+                <AccordionItem title={t(locale, "product.set")}>
+                  {t(locale, "pages.services.description")}
+                </AccordionItem>
+                <AccordionItem title={t(locale, "product.installDelivery")}>
+                  {t(locale, "product.freeServices")}
+                </AccordionItem>
+                <AccordionItem title={t(locale, "product.warranty")}>
+                  {t(locale, "pages.about.featuresDesc3")}
+                </AccordionItem>
               </div>
             </div>
           </div>
@@ -296,11 +286,11 @@ export default function ProductClient({ id }) {
       <section>
         <div className="container">
           <h2 className="mb-4">{t(locale, "product.similar")}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <RevealGrid className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {similar.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
-          </div>
+          </RevealGrid>
         </div>
       </section>
 
