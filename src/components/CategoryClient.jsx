@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import RevealGrid from "@/components/anim/RevealGrid";
-import { getProductsByCategory, getCategoryBySlug, collections } from "@/data/products";
-import { usePathname } from "next/navigation";
+import { getProductsByCategory, getCategoryBySlug } from "@/data/products";
+import { usePathname, useRouter } from "next/navigation";
 import { getLocaleFromPathname, withLocaleHref, t } from "@/lib/i18n";
+import { categories as allCategoriesData } from "@/data/products";
 
 export default function CategoryClient({ slug }) {
   const locale = getLocaleFromPathname(usePathname());
+  const router = useRouter();
   const category = getCategoryBySlug(slug);
   const allProducts = getProductsByCategory(slug);
   const [selectedCollections, setSelectedCollections] = useState([]);
@@ -19,8 +21,13 @@ export default function CategoryClient({ slug }) {
   const [thermoFilter, setThermoFilter] = useState("all"); // all | yes | no
   const [sort, setSort] = useState("popular");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const collectionOptions = collections;
+  const collectionOptions = Array.from(new Set(allProducts.map((p) => p.collection).filter(Boolean)));
   const colorOptions = Array.from(new Set(allProducts.flatMap((p) => p.colors || [])));
+
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [colorsOpen, setColorsOpen] = useState(false);
+  const [collectionSearch, setCollectionSearch] = useState("");
+  const [colorSearch, setColorSearch] = useState("");
 
   const colorTokenMaps = {
     en: {
@@ -167,40 +174,135 @@ export default function CategoryClient({ slug }) {
 
   const isPrivateHouse = slug === "ardurvis-privatmajai";
 
+  const typeOptions = [
+    "ardurvis-dzivoklim",
+    "ardurvis-privatmajai",
+    "ieksdurvis",
+    "bidamas-durvis",
+    "sleptas-durvis",
+  ];
+
+  const typeTitle = locale === "lt" ? "Durų tipas" : locale === "en" ? "Door type" : "Durvju tips";
+
+  const labelForSlug = (s) => {
+    const k1 = t(locale, `categories.details.${s}.name`);
+    if (k1 !== `categories.details.${s}.name`) return k1;
+    const k2 = t(locale, `categories.${s}`);
+    if (k2 !== `categories.${s}`) return k2;
+    const fromData = allCategoriesData.find((c) => c.slug === s)?.name;
+    return fromData || s;
+  };
+
+  const searchPlaceholder = locale === "lt" ? "Ieškoti..." : locale === "en" ? "Search..." : "Meklēt...";
+  const collectionQuery = collectionSearch.trim().toLowerCase();
+  const colorQuery = colorSearch.trim().toLowerCase();
+  const filteredCollections = collectionOptions.filter((c) => c.toLowerCase().includes(collectionQuery));
+  const filteredColors = colorOptions.filter((c) => {
+    const base = String(c).toLowerCase();
+    const translated = String(translateColorLabel(c)).toLowerCase();
+    return base.includes(colorQuery) || translated.includes(colorQuery);
+  });
+
   const Filters = (
     <div className="w-full max-w-[260px] shrink-0">
       <div className="mb-6">
-        <div className="mb-3 border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">{t(locale, "category.collection")}</div>
+        <div className="mb-3 border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">{typeTitle}</div>
         <div className="space-y-0.5">
-          {collectionOptions.map((c) => (
-            <label key={c} className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
+          {typeOptions.map((s) => (
+            <label key={s} className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
               <input
-                type="checkbox"
+                type="radio"
+                name="door-type"
                 className="h-4 w-4 accent-[--color-accent]"
-                checked={selectedCollections.includes(c)}
-                onChange={() => toggleIn(selectedCollections, setSelectedCollections, c)}
+                checked={slug === s}
+                onChange={() => router.push(withLocaleHref(locale, `/kategorija/${s}`))}
               />
-              <span>{c}</span>
+              <span>{labelForSlug(s)}</span>
             </label>
           ))}
         </div>
       </div>
 
       <div className="mb-6">
-        <div className="mb-3 border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">{t(locale, "category.color")}</div>
-        <div className="space-y-0.5">
-          {colorOptions.map((c) => (
-            <label key={c} className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-[--color-accent]"
-                checked={selectedColors.includes(c)}
-                onChange={() => toggleIn(selectedColors, setSelectedColors, c)}
-              />
-              <span>{translateColorLabel(c)}</span>
-            </label>
-          ))}
+        <div className="mb-3 flex items-center justify-between border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">
+          <span>{t(locale, "category.collection")}</span>
+          <button
+            className="text-xs text-muted hover:text-ink"
+            onClick={() => setCollectionsOpen((v) => !v)}
+          >
+            {collectionsOpen ? t(locale, "category.close") : t(locale, "category.filters")}
+          </button>
         </div>
+        {collectionsOpen ? (
+          <>
+            <div className="mb-2">
+              <input
+                type="text"
+                value={collectionSearch}
+                onChange={(e) => setCollectionSearch(e.target.value)}
+                placeholder={searchPlaceholder}
+                className="min-h-9 w-full rounded-sm border border-line bg-white px-2 py-1 text-[14px] text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
+              />
+            </div>
+            <div className="space-y-0.5 max-h-80 overflow-auto pr-1">
+              {filteredCollections.map((c) => (
+                <label key={c} className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-[--color-accent]"
+                    checked={selectedCollections.includes(c)}
+                    onChange={() => toggleIn(selectedCollections, setSelectedCollections, c)}
+                  />
+                  <span>{c}</span>
+                </label>
+              ))}
+              {!filteredCollections.length ? (
+                <div className="px-2 py-2 text-sm text-muted">—</div>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      <div className="mb-6">
+        <div className="mb-3 flex items-center justify-between border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">
+          <span>{t(locale, "category.color")}</span>
+          <button
+            className="text-xs text-muted hover:text-ink"
+            onClick={() => setColorsOpen((v) => !v)}
+          >
+            {colorsOpen ? t(locale, "category.close") : t(locale, "category.filters")}
+          </button>
+        </div>
+        {colorsOpen ? (
+          <>
+            <div className="mb-2">
+              <input
+                type="text"
+                value={colorSearch}
+                onChange={(e) => setColorSearch(e.target.value)}
+                placeholder={searchPlaceholder}
+                className="min-h-9 w-full rounded-sm border border-line bg-white px-2 py-1 text-[14px] text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
+              />
+            </div>
+            <div className="space-y-0.5 max-h-80 overflow-auto pr-1">
+              {filteredColors.map((c) => (
+                <label key={c} className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-[--color-accent]"
+                    checked={selectedColors.includes(c)}
+                    onChange={() => toggleIn(selectedColors, setSelectedColors, c)}
+                  />
+                  <span>{translateColorLabel(c)}</span>
+                </label>
+              ))}
+              {!filteredColors.length ? (
+                <div className="px-2 py-2 text-sm text-muted">—</div>
+              ) : null}
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div className="mb-6">
