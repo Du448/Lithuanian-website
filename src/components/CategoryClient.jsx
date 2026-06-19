@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import RevealGrid from "@/components/anim/RevealGrid";
 import { getProductsByCategory, getCategoryBySlug } from "@/data/products";
@@ -224,15 +225,17 @@ export default function CategoryClient({ slug }) {
       </div>
 
       <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">
+        <button
+          type="button"
+          onClick={() => setCollectionsOpen((v) => !v)}
+          aria-expanded={collectionsOpen}
+          className="mb-3 flex w-full items-center justify-between border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink hover:text-ink"
+        >
           <span>{t(locale, "category.collection")}</span>
-          <button
-            className="text-xs text-muted hover:text-ink"
-            onClick={() => setCollectionsOpen((v) => !v)}
-          >
-            {collectionsOpen ? t(locale, "category.close") : t(locale, "category.filters")}
-          </button>
-        </div>
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-sm text-muted group-hover:text-ink">
+            {collectionsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </span>
+        </button>
         {collectionsOpen ? (
           <>
             <div className="mb-2">
@@ -265,15 +268,17 @@ export default function CategoryClient({ slug }) {
       </div>
 
       <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">
+        <button
+          type="button"
+          onClick={() => setColorsOpen((v) => !v)}
+          aria-expanded={colorsOpen}
+          className="mb-3 flex w-full items-center justify-between border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink hover:text-ink"
+        >
           <span>{t(locale, "category.color")}</span>
-          <button
-            className="text-xs text-muted hover:text-ink"
-            onClick={() => setColorsOpen((v) => !v)}
-          >
-            {colorsOpen ? t(locale, "category.close") : t(locale, "category.filters")}
-          </button>
-        </div>
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-sm text-muted group-hover:text-ink">
+            {colorsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </span>
+        </button>
         {colorsOpen ? (
           <>
             <div className="mb-2">

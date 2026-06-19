@@ -11,6 +11,7 @@ import { isWishlisted, toggleWishlistId } from "@/lib/wishlist";
 export default function ProductCard({ product }) {
   const locale = getLocaleFromPathname(usePathname());
   const [wishlisted, setWishlisted] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
 
   useEffect(() => {
     const sync = () => setWishlisted(isWishlisted(product.id));
@@ -30,14 +31,14 @@ export default function ProductCard({ product }) {
   return (
     <Link
       href={withLocaleHref(locale, `/produkts/${product.id}`)}
-      className="group block rounded-sm border border-line bg-white p-3 cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-transparent hover:shadow-[0_16px_40px_-16px_rgba(0,0,0,0.22)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+      className="group block rounded-sm bg-white p-3 cursor-pointer transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_16px_40px_-16px_rgba(0,0,0,0.22)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
       {/* Image area */}
-      <div className="relative mb-3 overflow-hidden rounded-sm">
+      <div className="relative mb-3 overflow-hidden rounded-sm" onMouseLeave={() => setActiveIdx(0)}>
         {product.images && product.images.length > 0 ? (
           <div className="relative aspect-3/4 bg-white">
             <Image
-              src={product.images[0]}
+              src={product.images[activeIdx]}
               alt={product.name}
               fill
               unoptimized
@@ -57,6 +58,25 @@ export default function ProductCard({ product }) {
             <ArrowRight size={16} className="text-ink" />
           </span>
         </div>
+        {/* Thumbnails on hover */}
+        {product.images && product.images.length > 1 ? (
+          <div className="absolute left-1/2 bottom-2 -translate-x-1/2 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            {product.images.slice(0, 6).map((src, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className={`h-8 w-8 rounded-sm border ${idx === activeIdx ? "border-[--color-accent]" : "border-line"} bg-white/80 overflow-hidden`}
+                aria-label={`${product.name} thumbnail ${idx + 1}`}
+                onMouseEnter={() => setActiveIdx(idx)}
+                onFocus={() => setActiveIdx(idx)}
+              >
+                <span className="relative block h-full w-full">
+                  <Image src={src} alt="" fill unoptimized sizes="48px" className="object-contain" />
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         {/* Badges */}
         <div className="absolute left-2 top-2 flex flex-col gap-1">
           {hasOffer && (

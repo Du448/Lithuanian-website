@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Heart, Shield } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Heart, Shield, ChevronUp, ChevronDown } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import AccordionItem from "@/components/anim/AccordionItem";
 import MagneticButton from "@/components/anim/MagneticButton";
@@ -17,11 +17,33 @@ export default function ProductClient({ id }) {
   const locale = getLocaleFromPathname(usePathname());
   const product = getProductById(id);
   const productImages = product?.images && product.images.length > 0 ? product.images : ["placeholder"];
+  const images = productImages;
   const [activeIdx, setActiveIdx] = useState(0);
+  const [selectedIdx, setSelectedIdx] = useState(0);
   const [activeSize, setActiveSize] = useState(product?.sizes?.[0] || "");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(0);
   const [wishlisted, setWishlisted] = useState(false);
+  const thumbsRef = useRef(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const scrollThumbs = (dir) => {
+    const el = thumbsRef.current;
+    if (!el) return;
+    const firstBtn = el.querySelector("button");
+    const step = firstBtn ? firstBtn.getBoundingClientRect().height + 8 : 80; // 8 = gap-2
+    el.scrollBy({ top: dir * step, behavior: "smooth" });
+  };
+
+  const updateScrollButtons = () => {
+    const el = thumbsRef.current;
+    if (!el) return;
+    const max = Math.max(0, el.scrollHeight - el.clientHeight);
+    const top = el.scrollTop;
+    setCanScrollUp(top > 0);
+    setCanScrollDown(top < max);
+  };
 
   useEffect(() => {
     if (!product?.id) return;
@@ -35,6 +57,20 @@ export default function ProductClient({ id }) {
     };
   }, [product?.id]);
 
+  useEffect(() => {
+    updateScrollButtons();
+    const el = thumbsRef.current;
+    if (!el) return;
+    const onScroll = () => updateScrollButtons();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const onResize = () => updateScrollButtons();
+    window.addEventListener("resize", onResize);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [images.length]);
+
   if (!product) {
     return (
       <main className="container py-10">
@@ -43,7 +79,6 @@ export default function ProductClient({ id }) {
     );
   }
 
-  const images = productImages;
   const hasOffer = product.oldPrice != null && product.oldPrice > product.price;
   const discount = hasOffer ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
   const similar = getProductsByCategory(product.category).filter((p) => p.id !== product.id).slice(0, 4);
@@ -87,40 +122,105 @@ export default function ProductClient({ id }) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left: Gallery */}
             <div>
-              <div className="relative overflow-hidden rounded-sm border border-line">
-                {images[activeIdx] === "placeholder" ? (
-                  <div className="w-full aspect-[3/4] bg-[--color-soft] flex items-center justify-center text-muted">
-                    <span>{t(locale, "product.image")}</span>
+              {/* Shared aspect box to keep thumbnails column height equal to main image */}
+              <div className="relative aspect-[3/4]">
+                <div className="absolute inset-0 grid grid-cols-1 lg:grid-cols-[112px_1fr] gap-3">
+                  {/* Vertical thumbnails (desktop) */}
+                  <div className="relative hidden lg:block h-full overflow-hidden bg-[--color-soft] rounded-sm">
+                    <button
+                      type="button"
+                      className={`absolute left-1/2 -translate-x-1/2 top-2 z-20 inline-flex h-9 w-9 items-center justify-center rounded-sm border border-line bg-white shadow-md text-ink transition-opacity hover:bg-ink/10 ${canScrollUp ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                      aria-label={t(locale, "product.previous")}
+                      onClick={() => scrollThumbs(-1)}
+                    >
+                      <ChevronUp size={18} />
+                    </button>
+                    <div ref={thumbsRef} className="absolute inset-x-0 top-[52px] bottom-[52px] overflow-y-auto no-scrollbar pr-1">
+                      <div className="flex h-max flex-col gap-2">
+                        {images.map((src, idx) => (
+                          <button
+                            key={`v-${idx}`}
+                            className={`relative group aspect-square rounded-sm border ${idx === selectedIdx ? "border-[--color-accent]" : "border-line"} bg-[--color-soft] text-xs text-muted w-full overflow-hidden`}
+                            onClick={() => { setSelectedIdx(idx); setActiveIdx(idx); }}
+                            onMouseEnter={() => setActiveIdx(idx)}
+                            onMouseLeave={() => setActiveIdx(selectedIdx)}
+                            onFocus={() => setActiveIdx(idx)}
+                            onBlur={() => setActiveIdx(selectedIdx)}
+                            aria-label={t(locale, "product.imageN").replace("{n}", String(idx + 1))}
+                          >
+                            {src === "placeholder" ? (
+                              t(locale, "product.image")
+                            ) : (
+                              <span className="relative block h-full w-full overflow-hidden">
+                                <Image
+                                  src={src}
+                                  alt={`${product.name} attēls ${idx + 1}`}
+                                  fill
+                                  unoptimized
+                                  referrerPolicy="no-referrer"
+                                  sizes="120px"
+                                  className="object-contain"
+                                />
+                              </span>
+                            )}
+                            <span aria-hidden className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-[var(--color-ink)] opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className={`absolute left-1/2 -translate-x-1/2 bottom-2 z-20 inline-flex h-9 w-9 items-center justify-center rounded-sm border border-line bg-white shadow-md text-ink transition-opacity hover:bg-ink/10 ${canScrollDown ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                      aria-label={t(locale, "product.next")}
+                      onClick={() => scrollThumbs(1)}
+                    >
+                      <ChevronDown size={18} />
+                    </button>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLightboxIdx(activeIdx);
-                      setLightboxOpen(true);
-                    }}
-                    className="relative block w-full aspect-[3/4]"
-                    aria-label={t(locale, "product.openImage")}
-                  >
-                    <Image
-                      src={images[activeIdx]}
-                      alt={product.name}
-                      fill
-                      unoptimized
-                      referrerPolicy="no-referrer"
-                      loading="eager"
-                      sizes="(max-width: 1024px) 100vw, 50vw"
-                      className="object-contain"
-                    />
-                  </button>
-                )}
+
+                  {/* Main image */}
+                  <div className="relative overflow-hidden rounded-sm">
+                    {images[activeIdx] === "placeholder" ? (
+                      <div className="w-full h-full bg-[--color-soft] flex items-center justify-center text-muted">
+                        <span>{t(locale, "product.image")}</span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLightboxIdx(activeIdx);
+                          setLightboxOpen(true);
+                        }}
+                        className="relative block w-full h-full"
+                        aria-label={t(locale, "product.openImage")}
+                      >
+                        <Image
+                          src={images[activeIdx]}
+                          alt={product.name}
+                          fill
+                          unoptimized
+                          referrerPolicy="no-referrer"
+                          loading="eager"
+                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          className="object-contain"
+                        />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="mt-3 grid grid-cols-5 gap-2">
+
+              {/* Thumbnails grid (mobile only) */}
+              <div className="mt-3 grid grid-cols-5 gap-2 lg:hidden">
                 {images.map((src, idx) => (
                   <button
                     key={idx}
-                    className={`aspect-square rounded-sm border ${idx === activeIdx ? "border-[--color-accent]" : "border-line"} bg-[--color-soft] text-xs text-muted`}
-                    onClick={() => setActiveIdx(idx)}
+                    className={`relative group aspect-square rounded-sm border ${idx === selectedIdx ? "border-[--color-accent]" : "border-line"} bg-[--color-soft] text-xs text-muted overflow-hidden`}
+                    onClick={() => { setSelectedIdx(idx); setActiveIdx(idx); }}
+                    onMouseEnter={() => setActiveIdx(idx)}
+                    onMouseLeave={() => setActiveIdx(selectedIdx)}
+                    onFocus={() => setActiveIdx(idx)}
+                    onBlur={() => setActiveIdx(selectedIdx)}
                     aria-label={t(locale, "product.imageN").replace("{n}", String(idx + 1))}
                   >
                     {src === "placeholder" ? (
@@ -138,6 +238,7 @@ export default function ProductClient({ id }) {
                         />
                       </span>
                     )}
+                    <span aria-hidden className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-[var(--color-ink)] opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100" />
                   </button>
                 ))}
               </div>

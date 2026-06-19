@@ -62,3 +62,12 @@ section { @apply py-10 sm:py-14; }
     animation: none;
   }
 }
+
+/* Utility: hide native scrollbars but keep scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}

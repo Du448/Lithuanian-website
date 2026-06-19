@@ -6,6 +6,7 @@ import { ChevronDown } from "lucide-react";
 
 export default function AccordionItem({ title, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [hover, setHover] = useState(false);
   const bodyRef = useRef(null);
   const iconRef = useRef(null);
   const contentId = useId();
@@ -53,12 +54,15 @@ export default function AccordionItem({ title, children, defaultOpen = false }) 
         onClick={toggle}
         aria-expanded={open}
         aria-controls={contentId}
-        className="flex w-full cursor-pointer items-center justify-between gap-3 p-4 text-left text-ink transition-colors hover:bg-[--color-soft]/60"
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        className={`relative overflow-hidden flex w-full cursor-pointer items-center justify-between gap-3 p-4 text-left text-ink transition-colors border ${open || hover ? 'bg-[--color-soft] border-[var(--color-ink)]' : 'bg-white border-transparent'} hover:bg-[--color-soft] hover:border-[var(--color-ink)]`}
       >
-        <span className="font-medium">{title}</span>
-        <span ref={iconRef} className="inline-flex text-muted will-change-transform" style={{ rotate: defaultOpen ? "180deg" : "0deg" }}>
+        <span className="relative z-10 font-medium">{title}</span>
+        <span ref={iconRef} className="relative z-10 inline-flex text-muted will-change-transform" style={{ rotate: defaultOpen ? "180deg" : "0deg" }}>
           <ChevronDown size={18} />
         </span>
+        <span aria-hidden className="pointer-events-none absolute inset-0 bg-ink/5 opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
       </button>
       <div
         id={contentId}

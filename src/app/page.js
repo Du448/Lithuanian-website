@@ -35,7 +35,7 @@ export default async function Home() {
         <HeroSlider
             slides={[
               {
-                image: "https://images.unsplash.com/photo-1603673298820-40d77252226d?auto=format&fit=crop&w=2400&q=80",
+                image: "https://images.unsplash.com/photo-1776632001065-ad9efe3ee60e?auto=format&fit=crop&w=2400&q=80",
                 kicker: locale === "lv" ? "IEKŠDURVIS" : locale === "en" ? "INTERIOR DOORS" : "VIDAUS DURYS",
                 title: locale === "lv" ? "Iedvesma jūsu interjeram" : locale === "en" ? "Inspiration for your interior" : "Įkvėpimas jūsų interjerui",
                 subtitle: locale === "lv" ? "Izvēlies modernus risinājumus un kvalitatīvus materiālus." : locale === "en" ? "Choose modern solutions and high-quality materials." : "Rinkitės modernius sprendimus ir aukštos kokybės medžiagas.",
@@ -44,7 +44,7 @@ export default async function Home() {
                 ],
               },
               {
-                image: "https://images.unsplash.com/photo-1771354959667-96360bf59eab?auto=format&fit=crop&w=2400&q=80",
+                image: "https://images.unsplash.com/photo-1628744876657-abd5086695dc?auto=format&fit=crop&w=2400&q=80",
                 kicker: locale === "lv" ? "IEEJAS DURVIS" : locale === "en" ? "ENTRANCE DOORS" : "LAUKO DURYS",
                 title: locale === "lv" ? "Modernas ārdurvis Jūsu mājai" : locale === "en" ? "Modern exterior doors for your home" : "Modernios lauko durys jūsų namams",
                 subtitle: locale === "lv" ? "Termodurvis ar augstu energoefektivitāti un skaņas izolāciju." : locale === "en" ? "Thermal doors with high energy efficiency and sound insulation." : "Termo durys su aukštu energiniu efektyvumu ir garso izoliacija.",
@@ -53,7 +53,7 @@ export default async function Home() {
                 ],
               },
               {
-                image: "https://images.unsplash.com/photo-1742319096910-9efbcf6cddee?auto=format&fit=crop&w=2400&q=80",
+                image: "https://images.unsplash.com/photo-1697653568339-e8f8a5dd7318?auto=format&fit=crop&w=2400&q=80",
                 kicker: locale === "lv" ? "SALONI" : locale === "en" ? "SHOWROOM" : "SALONAS",
                 title: locale === "lv" ? "Apmeklē mūsu salonu" : locale === "en" ? "Visit our showroom" : "Apsilankykite mūsų salone",
                 subtitle: locale === "lv" ? "Uzzini par materiāliem un risinājumiem klātienē." : locale === "en" ? "Learn about materials and solutions in person." : "Sužinokite apie medžiagas ir sprendimus gyvai.",
