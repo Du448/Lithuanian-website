@@ -8,12 +8,14 @@ const nextConfig = {
   reactCompiler: true,
   outputFileTracingRoot: __dirname,
   images: {
-    // Explicitly allow ImageKit host via domains for compatibility
-    domains: ["ik.imagekit.io"],
     remotePatterns: [
       {
         protocol: "https",
         hostname: "ik.imagekit.io",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
       },
     ],
   },

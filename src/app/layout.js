@@ -1,10 +1,20 @@
 import "./globals.css";
+import { Inter } from "next/font/google";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { headers } from "next/headers";
 import { getLocaleFromPathname } from "@/lib/i18n";
+import { CompareProvider } from "@/lib/compare";
+import CompareBar from "@/components/CompareBar";
+import { RfqProvider } from "@/lib/rfq";
+import MotionProvider from "@/components/motion/MotionProvider";
+import PageTransitionFM from "@/components/motion/PageTransitionFM";
+import CookieConsent from "@/components/CookieConsent";
+import AnalyticsLoader from "@/components/AnalyticsLoader";
 
-// Using system font stack via Tailwind's font-sans to avoid build-time fetch
+// Fonts via next/font with display swap
+const inter = Inter({ subsets: ["latin"], display: "swap", weight: ["400", "500", "600", "700"] });
 
 export const dynamic = "force-dynamic";
 
@@ -36,10 +46,25 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang={locale}>
-      <body className={`antialiased`}>
-        <Header />
-        {children}
-        <Footer />
+      <body className={`${inter.className} antialiased`}>
+        <TooltipProvider>
+          <CompareProvider>
+            <RfqProvider>
+              <MotionProvider>
+                <Header />
+                <PageTransitionFM>
+                  {children}
+                </PageTransitionFM>
+                <Footer />
+                <CompareBar />
+                {/* Privacy-first cookie banner (defaults to essential-only) */}
+                <CookieConsent />
+                {/* Analytics only loads when consent is given and env vars are set */}
+                <AnalyticsLoader />
+              </MotionProvider>
+            </RfqProvider>
+          </CompareProvider>
+        </TooltipProvider>
       </body>
     </html>
   );

@@ -37,7 +37,6 @@ export default async function AboutPage() {
                 src="https://images.unsplash.com/photo-1613544723301-176686aa9f09?auto=format&fit=crop&w=1800&q=80"
                 alt=""
                 fill
-                unoptimized
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover"
               />
@@ -86,7 +85,6 @@ export default async function AboutPage() {
                 src="https://images.unsplash.com/photo-1771354959667-96360bf59eab?auto=format&fit=crop&w=1400&q=80"
                 alt=""
                 fill
-                unoptimized
                 sizes="(max-width: 1024px) 100vw, 33vw"
                 className="object-cover"
               />
@@ -96,7 +94,6 @@ export default async function AboutPage() {
                 src="https://images.unsplash.com/photo-1572297862992-4d366ab34d63?auto=format&fit=crop&w=1400&q=80"
                 alt=""
                 fill
-                unoptimized
                 sizes="(max-width: 1024px) 100vw, 33vw"
                 className="object-cover"
               />
@@ -106,7 +103,6 @@ export default async function AboutPage() {
                 src="https://images.unsplash.com/photo-1748027869634-fc2e545cfb0c?auto=format&fit=crop&w=1400&q=80"
                 alt=""
                 fill
-                unoptimized
                 sizes="(max-width: 1024px) 100vw, 33vw"
                 className="object-cover"
               />

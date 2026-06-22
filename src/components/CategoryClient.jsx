@@ -1,18 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, ChevronDownCircle, Check, SlidersHorizontal } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
+import MotionReveal from "@/components/motion/MotionReveal";
 import RevealGrid from "@/components/anim/RevealGrid";
 import { getProductsByCategory, getCategoryBySlug } from "@/data/products";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getLocaleFromPathname, withLocaleHref, t } from "@/lib/i18n";
 import { categories as allCategoriesData } from "@/data/products";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export default function CategoryClient({ slug }) {
   const locale = getLocaleFromPathname(usePathname());
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const category = getCategoryBySlug(slug);
   const allProducts = getProductsByCategory(slug);
   const [selectedCollections, setSelectedCollections] = useState([]);
@@ -22,6 +38,9 @@ export default function CategoryClient({ slug }) {
   const [thermoFilter, setThermoFilter] = useState("all"); // all | yes | no
   const [sort, setSort] = useState("popular");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(12);
+  const [loading, setLoading] = useState(false);
+  const didHydrateFromUrl = useRef(false);
   const collectionOptions = Array.from(new Set(allProducts.map((p) => p.collection).filter(Boolean)));
   const colorOptions = Array.from(new Set(allProducts.flatMap((p) => p.colors || [])));
 
@@ -125,6 +144,63 @@ export default function CategoryClient({ slug }) {
     setThermoFilter("all");
   };
 
+  // Read filters from URL on mount/change
+  useEffect(() => {
+    const sp = new URLSearchParams(searchParams?.toString() || "");
+    const col = sp.getAll("kolekcija");
+    const clr = sp.getAll("krasa");
+    const pmin = sp.get("cena_no") || "";
+    const pmax = sp.get("cena_lidz") || "";
+    const th = sp.get("termo") || "all";
+    const srt = sp.get("kartot") || "popular";
+    // Only update state if changed to avoid loops
+    setSelectedCollections((prev) => (JSON.stringify(prev) !== JSON.stringify(col) ? col : prev));
+    setSelectedColors((prev) => (JSON.stringify(prev) !== JSON.stringify(clr) ? clr : prev));
+    setPriceMin((prev) => (prev !== pmin ? pmin : prev));
+    setPriceMax((prev) => (prev !== pmax ? pmax : prev));
+    setThermoFilter((prev) => {
+      const next = ["all","yes","no"].includes(th) ? th : "all";
+      return prev !== next ? next : prev;
+    });
+    setSort((prev) => {
+      const next = ["popular","cheap","expensive","new"].includes(srt) ? srt : "popular";
+      return prev !== next ? next : prev;
+    });
+    // Do not reset visible counter unless query actually changed
+    didHydrateFromUrl.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const buildQSFromState = () => {
+    const sp = new URLSearchParams();
+    selectedCollections.forEach((c) => sp.append("kolekcija", c));
+    selectedColors.forEach((c) => sp.append("krasa", c));
+    if (priceMin !== "") sp.set("cena_no", String(priceMin));
+    if (priceMax !== "") sp.set("cena_lidz", String(priceMax));
+    if (thermoFilter !== "all") sp.set("termo", thermoFilter);
+    if (sort !== "popular") sp.set("kartot", sort);
+    return sp.toString();
+  };
+
+  useEffect(() => {
+    if (!category) return;
+    const nextQS = buildQSFromState();
+    const currentQS = searchParams?.toString() || "";
+    if (nextQS === currentQS) {
+      // No URL change needed, also avoid flicker
+      setLoading(false);
+      return;
+    }
+    // Prevent initial double-push on first hydration
+    if (!didHydrateFromUrl.current) return;
+    setLoading(true);
+    const url = nextQS ? `${pathname}?${nextQS}` : pathname;
+    router.replace(url, { scroll: false });
+    const id = setTimeout(() => setLoading(false), 180);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCollections, selectedColors, priceMin, priceMax, thermoFilter, sort, pathname, searchParams]);
+
   let filtered = [...allProducts];
   if (selectedCollections.length) filtered = filtered.filter((p) => selectedCollections.includes(p.collection));
   if (selectedColors.length) filtered = filtered.filter((p) => (p.colors || []).some((c) => selectedColors.includes(c)));
@@ -205,7 +281,7 @@ export default function CategoryClient({ slug }) {
   });
 
   const Filters = (
-    <div className="w-full max-w-[260px] shrink-0">
+    <div className="w-full max-w-[260px] shrink-0 md:sticky md:top-20 relative z-0">
       <div className="mb-6">
         <div className="mb-3 border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink">{typeTitle}</div>
         <div className="space-y-0.5">
@@ -227,7 +303,7 @@ export default function CategoryClient({ slug }) {
       <div className="mb-6">
         <button
           type="button"
-          onClick={() => setCollectionsOpen((v) => !v)}
+          onClick={() => setCollectionsOpen((v) => { const next = !v; if (next) setColorsOpen(false); return next; })}
           aria-expanded={collectionsOpen}
           className="mb-3 flex w-full items-center justify-between border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink hover:text-ink"
         >
@@ -247,7 +323,7 @@ export default function CategoryClient({ slug }) {
                 className="min-h-9 w-full rounded-sm border border-line bg-white px-2 py-1 text-[14px] text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
               />
             </div>
-            <div className="space-y-0.5 max-h-80 overflow-auto pr-1">
+            <div className="max-h-80 overflow-y-auto pr-1"><div className="space-y-0.5">
               {filteredCollections.map((c) => (
                 <label key={c} className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
                   <input
@@ -262,7 +338,7 @@ export default function CategoryClient({ slug }) {
               {!filteredCollections.length ? (
                 <div className="px-2 py-2 text-sm text-muted">—</div>
               ) : null}
-            </div>
+            </div></div>
           </>
         ) : null}
       </div>
@@ -270,7 +346,7 @@ export default function CategoryClient({ slug }) {
       <div className="mb-6">
         <button
           type="button"
-          onClick={() => setColorsOpen((v) => !v)}
+          onClick={() => setColorsOpen((v) => { const next = !v; if (next) setCollectionsOpen(false); return next; })}
           aria-expanded={colorsOpen}
           className="mb-3 flex w-full items-center justify-between border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wider text-ink hover:text-ink"
         >
@@ -290,7 +366,7 @@ export default function CategoryClient({ slug }) {
                 className="min-h-9 w-full rounded-sm border border-line bg-white px-2 py-1 text-[14px] text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
               />
             </div>
-            <div className="space-y-0.5 max-h-80 overflow-auto pr-1">
+            <div className="max-h-80 overflow-y-auto pr-1"><div className="space-y-0.5">
               {filteredColors.map((c) => (
                 <label key={c} className="-mx-2 flex min-h-10 cursor-pointer items-center gap-2.5 rounded-sm px-2 text-[15px] text-ink transition-colors duration-200 hover:bg-[--color-soft]">
                   <input
@@ -305,7 +381,7 @@ export default function CategoryClient({ slug }) {
               {!filteredColors.length ? (
                 <div className="px-2 py-2 text-sm text-muted">—</div>
               ) : null}
-            </div>
+            </div></div>
           </>
         ) : null}
       </div>
@@ -383,7 +459,7 @@ export default function CategoryClient({ slug }) {
   return (
     <main>
       <section className="border-b border-line">
-        <div className="container py-6">
+        <div className="container pt-6 pb-0">
           <div className="text-sm text-muted">
             <Link className="text-ink hover:text-ink" href={withLocaleHref(locale, "/")}>{t(locale, "common.home")}</Link> <span className="text-muted">/</span> <span className="text-ink">{categoryName}</span>
           </div>
@@ -394,66 +470,141 @@ export default function CategoryClient({ slug }) {
         </div>
       </section>
 
-      <section>
-        <div className="container py-6">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="text-sm text-muted">{filtered.length} {t(locale, "category.models")}</div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted">{t(locale, "category.sort")}</label>
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                className="min-h-10 rounded-sm border border-line bg-white px-2 py-1 text-[15px] text-ink transition-colors hover:border-[--color-muted] focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
-              >
-                <option value="popular">{t(locale, "category.sortPopular")}</option>
-                <option value="cheap">{t(locale, "category.sortCheap")}</option>
-                <option value="expensive">{t(locale, "category.sortExpensive")}</option>
-                <option value="new">{t(locale, "category.sortNew")}</option>
-              </select>
-              <button
-                className="md:hidden min-h-10 rounded-sm border border-line px-4 py-1.5 text-[15px] text-ink transition-colors active:bg-[--color-soft]"
-                onClick={() => setMobileFiltersOpen(true)}
-              >
-                {t(locale, "category.filters")}
-              </button>
+      <section className="-mt-1">
+        <div className="container pt-0 pb-6">
+          <div className="mb-0 flex flex-col gap-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm text-muted">{filtered.length} {t(locale, "category.models")}</div>
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <ChevronDownCircle size={16} /> {t(locale, "category.sort")}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>{t(locale, "category.sort")}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setSort("popular")} className="justify-between">
+                      {t(locale, "category.sortPopular")} {sort === "popular" && <Check className="ml-2" size={14} />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSort("cheap")} className="justify-between">
+                      {t(locale, "category.sortCheap")} {sort === "cheap" && <Check className="ml-2" size={14} />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSort("expensive")} className="justify-between">
+                      {t(locale, "category.sortExpensive")} {sort === "expensive" && <Check className="ml-2" size={14} />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSort("new")} className="justify-between">
+                      {t(locale, "category.sortNew")} {sort === "new" && <Check className="ml-2" size={14} />}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="md:hidden gap-2">
+                      <SlidersHorizontal size={16} /> {t(locale, "category.filters")}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[85%] max-w-[360px]">
+                    <SheetHeader>
+                      <SheetTitle>{t(locale, "category.filters")}</SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-4 space-y-4">{Filters}</div>
+                    <div className="mt-6">
+                      <Button className="w-full" onClick={() => setMobileFiltersOpen(false)}>
+                        {t(locale, "category.showResults")} ({filtered.length})
+                      </Button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedCollections.map((c) => (
+                <Badge key={`col-${c}`} variant="secondary" className="gap-2">
+                  {c}
+                  <button aria-label={t(locale, "a11y.removeFilter") || "Noņemt filtru"} className="ml-1 text-muted-foreground" onClick={() => toggleIn(selectedCollections, setSelectedCollections, c)}>×</button>
+                </Badge>
+              ))}
+              {selectedColors.map((c) => (
+                <Badge key={`clr-${c}`} variant="secondary" className="gap-2">
+                  {translateColorLabel(c)}
+                  <button aria-label={t(locale, "a11y.removeFilter") || "Noņemt filtru"} className="ml-1 text-muted-foreground" onClick={() => toggleIn(selectedColors, setSelectedColors, c)}>×</button>
+                </Badge>
+              ))}
+              {priceMin !== "" && (
+                <Badge variant="secondary" className="gap-2">
+                  {t(locale, "category.from")} €{priceMin}
+                  <button aria-label={t(locale, "a11y.removeFilter") || "Noņemt filtru"} className="ml-1 text-muted-foreground" onClick={() => setPriceMin("")}>×</button>
+                </Badge>
+              )}
+              {priceMax !== "" && (
+                <Badge variant="secondary" className="gap-2">
+                  {t(locale, "category.to")} €{priceMax}
+                  <button aria-label={t(locale, "a11y.removeFilter") || "Noņemt filtru"} className="ml-1 text-muted-foreground" onClick={() => setPriceMax("")}>×</button>
+                </Badge>
+              )}
+              {thermoFilter !== "all" && (
+                <Badge variant="secondary" className="gap-2">
+                  {t(locale, "category.thermo")}: {thermoFilter === "yes" ? t(locale, "category.yes") : t(locale, "category.no")}
+                  <button aria-label={t(locale, "a11y.removeFilter") || "Noņemt filtru"} className="ml-1 text-muted-foreground" onClick={() => setThermoFilter("all")}>×</button>
+                </Badge>
+              )}
+              {(selectedCollections.length || selectedColors.length || priceMin !== "" || priceMax !== "" || thermoFilter !== "all") ? (
+                <Button variant="ghost" className="h-8" onClick={clearFilters}>{t(locale, "category.clearFilters")}</Button>
+              ) : null}
             </div>
           </div>
 
           <div className="flex gap-6">
             <div className="hidden md:block">{Filters}</div>
             <div className="flex-1">
-              <RevealGrid
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-                revealKey={`${slug}|${sort}|${filtered.map((p) => p.id).join(",")}`}
-              >
-                {filtered.map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-              </RevealGrid>
+              {loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="rounded-sm border border-line p-3">
+                      <Skeleton className="h-60 w-full rounded-sm" />
+                      <div className="mt-3 space-y-2">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-4 w-28" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <RevealGrid
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                    revealKey={`${slug}|${sort}|${filtered.map((p) => p.id).join(",")}`}
+                  >
+                    {filtered.slice(0, visibleCount).map((p, i) => (
+                      <MotionReveal key={p.id} index={i}>
+                        <ProductCard product={p} />
+                      </MotionReveal>
+                    ))}
+                  </RevealGrid>
+                  {visibleCount < filtered.length ? (
+                    <div className="mt-6 flex justify-center">
+                      <Button
+                        variant="outline"
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setVisibleCount((c) => c + 12);
+                        }}
+                      >
+                        VAIRĀK
+                      </Button>
+                    </div>
+                  ) : null}
+                </>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 md:hidden animate-fade-in" onClick={() => setMobileFiltersOpen(false)}>
-          <div
-            className="absolute inset-y-0 right-0 w-[85%] max-w-[320px] overflow-y-auto bg-white p-4 animate-drawer-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-ink">{t(locale, "category.filters")}</div>
-              <button
-                className="min-h-10 rounded-sm border border-line px-3 py-1 text-[15px] transition-colors active:bg-[--color-soft]"
-                onClick={() => setMobileFiltersOpen(false)}
-              >
-                {t(locale, "category.close")}
-              </button>
-            </div>
-            {Filters}
-          </div>
-        </div>
-      )}
     </main>
   );
 }

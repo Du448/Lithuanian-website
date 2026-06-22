@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Heart, ShoppingCart, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { gsap } from "gsap";
 import { getLocaleFromPathname, withLocaleHref, locales, t } from "@/lib/i18n";
 import { readWishlistIds } from "@/lib/wishlist";
+import { products, categories } from "@/data/products";
 
 function NavLink({ href, children, highlight, overlay = false }) {
   return (
@@ -35,6 +36,9 @@ export default function Header() {
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname);
   const isHome = pathname === `/${locale}` || pathname === `/${locale}/`;
+  const [openSuggest, setOpenSuggest] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     const sync = () => setWishlistCount(readWishlistIds().length);
@@ -122,6 +126,102 @@ export default function Header() {
     return `/${nextLocale}${pathnameWithoutLocale}`;
   };
 
+  // Search: compute results for products and categories
+  const trimmedQ = query.trim();
+  const lowerQ = trimmedQ.toLowerCase();
+
+  const popularCategories = useMemo(() => {
+    const counts = new Map();
+    for (const p of products) {
+      counts.set(p.category, (counts.get(p.category) || 0) + 1);
+    }
+    const withMeta = categories.map((c) => ({ ...c, count: counts.get(c.slug) || 0 }));
+    return withMeta.sort((a, b) => b.count - a.count).slice(0, 4);
+  }, []);
+
+  const matchedProducts = useMemo(() => {
+    if (!lowerQ) return [];
+    return products
+      .filter((p) => {
+        const inName = p.name?.toLowerCase().includes(lowerQ);
+        const inCollection = p.collection?.toLowerCase().includes(lowerQ);
+        const inColors = (p.colors || []).some((c) => c.toLowerCase().includes(lowerQ));
+        return inName || inCollection || inColors;
+      })
+      .slice(0, 8);
+  }, [lowerQ]);
+
+  const matchedCategories = useMemo(() => {
+    if (!lowerQ) return [];
+    return categories
+      .filter((c) => c.name.toLowerCase().includes(lowerQ) || c.slug.toLowerCase().includes(lowerQ))
+      .slice(0, 5);
+  }, [lowerQ]);
+
+  const combined = useMemo(() => {
+    const items = [];
+    if (matchedProducts.length) {
+      items.push({ type: "section", id: "products", label: t(locale, "search.products") || "Produkti" });
+      for (const p of matchedProducts) items.push({ type: "product", id: p.id, data: p });
+    }
+    if (matchedCategories.length) {
+      items.push({ type: "section", id: "categories", label: t(locale, "search.categories") || "Kategorijas" });
+      for (const c of matchedCategories) items.push({ type: "category", id: c.slug, data: c });
+    }
+    return items;
+  }, [matchedProducts, matchedCategories, locale]);
+
+  // Open suggestions while typing/focus
+  useEffect(() => {
+    if (trimmedQ.length > 0) setOpenSuggest(true);
+    setActiveIndex(() => {
+      // set initial active to first non-section item
+      const idx = combined.findIndex((x) => x.type !== "section");
+      return idx >= 0 ? idx : -1;
+    });
+  }, [trimmedQ, combined.length]);
+
+  // Close on route change
+  useEffect(() => {
+    setOpenSuggest(false);
+  }, [pathname]);
+
+  const selectItem = (item) => {
+    if (!item) return;
+    if (item.type === "product") {
+      router.push(withLocaleHref(locale, `/produkts/${item.data.id}`));
+      setOpenSuggest(false);
+    } else if (item.type === "category") {
+      router.push(withLocaleHref(locale, `/kategorija/${item.data.slug}`));
+      setOpenSuggest(false);
+    }
+  };
+
+  const onKeyDown = (e) => {
+    if (!openSuggest) return;
+    if (e.key === "Escape") {
+      setOpenSuggest(false);
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!combined.length) return;
+      const dir = e.key === "ArrowDown" ? 1 : -1;
+      let next = activeIndex;
+      for (let i = 0; i < combined.length; i++) {
+        next = (next + dir + combined.length) % combined.length;
+        if (combined[next].type !== "section") break;
+      }
+      setActiveIndex(next);
+    }
+    if (e.key === "Enter") {
+      if (activeIndex >= 0 && combined[activeIndex] && combined[activeIndex].type !== "section") {
+        e.preventDefault();
+        selectItem(combined[activeIndex]);
+      }
+    }
+  };
+
   return (
     <header
       ref={headerRef}
@@ -141,7 +241,7 @@ export default function Header() {
           </Link>
 
           {/* Center: Search */}
-          <div className={`flex-1 hidden md:flex items-center ${isHome ? "mt-2 md:mt-3" : ""}`}>
+          <div className={`flex-1 hidden md:flex items-center ${isHome ? "mt-0" : ""}`}>
             <form
               className="w-full max-w-xl relative"
               onSubmit={(e) => {
@@ -160,7 +260,93 @@ export default function Header() {
                 placeholder={t(locale, "nav.searchPlaceholder")}
                 className="w-full rounded-full border border-black/10 bg-white/95 shadow-sm pl-10 pr-4 h-11 text-[15px] text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[--color-accent] focus:border-transparent"
                 aria-label={t(locale, "a11y.search")}
+                onKeyDown={onKeyDown}
+                onFocus={() => {
+                  if (trimmedQ) setOpenSuggest(true);
+                }}
               />
+              {/* Command-style suggestions */}
+              {openSuggest && (
+                <div
+                  ref={containerRef}
+                  className="absolute z-40 mt-2 w-full max-w-xl rounded-lg border border-line bg-bg/95 shadow-[0_20px_40px_-28px_rgba(0,0,0,0.35)] backdrop-blur"
+                >
+                  {combined.length > 0 ? (
+                    <ul className="max-h-[60vh] overflow-auto py-2">
+                      {combined.map((item, idx) => {
+                        if (item.type === "section") {
+                          return (
+                            <li key={item.id} className="px-3 pt-3 pb-1 text-[12px] font-semibold tracking-wide text-muted uppercase">
+                              {item.label}
+                            </li>
+                          );
+                        }
+                        if (item.type === "product") {
+                          const p = item.data;
+                          const active = idx === activeIndex;
+                          return (
+                            <li key={`p-${p.id}`}>
+                              <button
+                                type="button"
+                                onMouseEnter={() => setActiveIndex(idx)}
+                                onClick={() => selectItem(item)}
+                                className={`flex w-full items-center gap-3 px-3 py-2 text-left ${active ? "bg-soft" : "hover:bg-soft/70"}`}
+                              >
+                                <img src={p.images?.[0]} alt="" className="h-9 w-9 rounded-sm object-cover border border-line" />
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-[14px] text-ink">{p.name}</div>
+                                  <div className="truncate text-[12px] text-muted">{p.collection} • €{p.price}</div>
+                                </div>
+                              </button>
+                            </li>
+                          );
+                        }
+                        if (item.type === "category") {
+                          const c = item.data;
+                          const active = idx === activeIndex;
+                          return (
+                            <li key={`c-${c.slug}`}>
+                              <button
+                                type="button"
+                                onMouseEnter={() => setActiveIndex(idx)}
+                                onClick={() => selectItem(item)}
+                                className={`flex w-full items-center gap-3 px-3 py-2 text-left ${active ? "bg-soft" : "hover:bg-soft/70"}`}
+                              >
+                                <span className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-line bg-soft text-[12px] font-semibold text-ink">
+                                  #{c.group?.[0] || c.name?.[0]}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-[14px] text-ink">{c.name}</div>
+                                  <div className="truncate text-[12px] text-muted">/{c.slug}</div>
+                                </div>
+                              </button>
+                            </li>
+                          );
+                        }
+                        return null;
+                      })}
+                    </ul>
+                  ) : (
+                    <div className="p-4">
+                      <div className="text-[14px] text-ink font-medium mb-1">{t(locale, "search.noResults") || "Nav rezultātu"}</div>
+                      <div className="text-[13px] text-muted mb-3">{t(locale, "search.tryPopular") || "Apskati populārākās kategorijas"}</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {popularCategories.map((c) => (
+                          <button
+                            key={c.slug}
+                            type="button"
+                            onClick={() => selectItem({ type: "category", data: c })}
+                            className="rounded-md border border-line bg-white px-3 py-2 text-left hover:bg-soft"
+                          >
+                            <div className="text-[13px] text-ink">{c.name}</div>
+                            <div className="text-[12px] text-muted">{c.count} {t(locale, "search.items") || "preces"}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </form>
           </div>
 
@@ -233,7 +419,90 @@ export default function Header() {
               placeholder={t(locale, "nav.searchPlaceholder")}
               className="w-full rounded-full border border-black/10 bg-white/95 shadow-sm pl-10 pr-4 h-11 text-[15px] text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[--color-accent] focus:border-transparent"
               aria-label={t(locale, "a11y.search")}
+              onFocus={() => {
+                if (trimmedQ) setOpenSuggest(true);
+              }}
+              onKeyDown={onKeyDown}
             />
+            {/* Mobile suggestions */}
+            {openSuggest && (
+              <div className="absolute z-40 mt-2 w-full rounded-lg border border-line bg-bg/95 shadow-[0_20px_40px_-28px_rgba(0,0,0,0.35)] backdrop-blur">
+                {combined.length > 0 ? (
+                  <ul className="max-h-[60vh] overflow-auto py-2">
+                    {combined.map((item, idx) => {
+                      if (item.type === "section") {
+                        return (
+                          <li key={item.id} className="px-3 pt-3 pb-1 text-[12px] font-semibold tracking-wide text-muted uppercase">
+                            {item.label}
+                          </li>
+                        );
+                      }
+                      if (item.type === "product") {
+                        const p = item.data;
+                        const active = idx === activeIndex;
+                        return (
+                          <li key={`mp-${p.id}`}>
+                            <button
+                              type="button"
+                              onMouseEnter={() => setActiveIndex(idx)}
+                              onClick={() => selectItem(item)}
+                              className={`flex w-full items-center gap-3 px-3 py-2 text-left ${active ? "bg-soft" : "hover:bg-soft/70"}`}
+                            >
+                              <img src={p.images?.[0]} alt="" className="h-9 w-9 rounded-sm object-cover border border-line" />
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-[14px] text-ink">{p.name}</div>
+                                <div className="truncate text-[12px] text-muted">{p.collection} • €{p.price}</div>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      }
+                      if (item.type === "category") {
+                        const c = item.data;
+                        const active = idx === activeIndex;
+                        return (
+                          <li key={`mc-${c.slug}`}>
+                            <button
+                              type="button"
+                              onMouseEnter={() => setActiveIndex(idx)}
+                              onClick={() => selectItem(item)}
+                              className={`flex w-full items-center gap-3 px-3 py-2 text-left ${active ? "bg-soft" : "hover:bg-soft/70"}`}
+                            >
+                              <span className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-line bg-soft text-[12px] font-semibold text-ink">
+                                #{c.group?.[0] || c.name?.[0]}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-[14px] text-ink">{c.name}</div>
+                                <div className="truncate text-[12px] text-muted">/{c.slug}</div>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      }
+                      return null;
+                    })}
+                  </ul>
+                ) : (
+                  <div className="p-4">
+                    <div className="text-[14px] text-ink font-medium mb-1">{t(locale, "search.noResults") || "Nav rezultātu"}</div>
+                    <div className="text-[13px] text-muted mb-3">{t(locale, "search.tryPopular") || "Apskati populārākās kategorijas"}</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {popularCategories.map((c) => (
+                        <button
+                          key={c.slug}
+                          type="button"
+                          onClick={() => selectItem({ type: "category", data: c })}
+                          className="rounded-md border border-line bg-white px-3 py-2 text-left hover:bg-soft"
+                        >
+                          <div className="text-[13px] text-ink">{c.name}</div>
+                          <div className="text-[12px] text-muted">{c.count} {t(locale, "search.items") || "preces"}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </form>
         </div>
       </div>
@@ -270,6 +539,10 @@ export default function Header() {
                 placeholder={t(locale, "nav.searchPlaceholder")}
                 className="w-full rounded-sm border border-line bg-white pl-9 pr-10 py-2 text-[15px] placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[--color-accent]"
                 aria-label={t(locale, "a11y.search")}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setShowSearch(false);
+                  onKeyDown(e);
+                }}
               />
               <button
                 type="button"
@@ -279,6 +552,85 @@ export default function Header() {
               >
                 ✕
               </button>
+              {/* Overlay suggestions (mobile full-screen overlay) */}
+              {openSuggest && (
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 rounded-lg border border-line bg-bg/95 shadow-[0_20px_40px_-28px_rgba(0,0,0,0.35)] backdrop-blur">
+                  {combined.length > 0 ? (
+                    <ul className="max-h-[65vh] overflow-auto py-2">
+                      {combined.map((item, idx) => {
+                        if (item.type === "section") {
+                          return (
+                            <li key={`os-${item.id}`} className="px-3 pt-3 pb-1 text-[12px] font-semibold tracking-wide text-muted uppercase">
+                              {item.label}
+                            </li>
+                          );
+                        }
+                        if (item.type === "product") {
+                          const p = item.data;
+                          const active = idx === activeIndex;
+                          return (
+                            <li key={`op-${p.id}`}>
+                              <button
+                                type="button"
+                                onMouseEnter={() => setActiveIndex(idx)}
+                                onClick={() => selectItem(item)}
+                                className={`flex w-full items-center gap-3 px-3 py-2 text-left ${active ? "bg-soft" : "hover:bg-soft/70"}`}
+                              >
+                                <img src={p.images?.[0]} alt="" className="h-9 w-9 rounded-sm object-cover border border-line" />
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-[14px] text-ink">{p.name}</div>
+                                  <div className="truncate text-[12px] text-muted">{p.collection} • €{p.price}</div>
+                                </div>
+                              </button>
+                            </li>
+                          );
+                        }
+                        if (item.type === "category") {
+                          const c = item.data;
+                          const active = idx === activeIndex;
+                          return (
+                            <li key={`oc-${c.slug}`}>
+                              <button
+                                type="button"
+                                onMouseEnter={() => setActiveIndex(idx)}
+                                onClick={() => selectItem(item)}
+                                className={`flex w-full items-center gap-3 px-3 py-2 text-left ${active ? "bg-soft" : "hover:bg-soft/70"}`}
+                              >
+                                <span className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-line bg-soft text-[12px] font-semibold text-ink">
+                                  #{c.group?.[0] || c.name?.[0]}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-[14px] text-ink">{c.name}</div>
+                                  <div className="truncate text-[12px] text-muted">/{c.slug}</div>
+                                </div>
+                              </button>
+                            </li>
+                          );
+                        }
+                        return null;
+                      })}
+                    </ul>
+                  ) : (
+                    <div className="p-4">
+                      <div className="text-[14px] text-ink font-medium mb-1">{t(locale, "search.noResults") || "Nav rezultātu"}</div>
+                      <div className="text-[13px] text-muted mb-3">{t(locale, "search.tryPopular") || "Apskati populārākās kategorijas"}</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {popularCategories.map((c) => (
+                          <button
+                            key={c.slug}
+                            type="button"
+                            onClick={() => selectItem({ type: "category", data: c })}
+                            className="rounded-md border border-line bg-white px-3 py-2 text-left hover:bg-soft"
+                          >
+                            <div className="text-[13px] text-ink">{c.name}</div>
+                            <div className="text-[12px] text-muted">{c.count} {t(locale, "search.items") || "preces"}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </form>
           </div>
         </div>
@@ -304,8 +656,8 @@ export default function Header() {
             </div>
           ) : (
             <div className="hidden md:flex items-center justify-center py-3 mt-4 md:mt-6 lg:mt-8">
-              <div className="mx-4 md:mx-6 lg:mx-10 max-w-6xl w-full rounded-sm border border-black/10 bg-white/95 shadow-sm">
-                <div className="flex items-center gap-1 px-2">
+              <div className="mx-4 md:mx-6 lg:mx-10 w-full rounded-sm border border-black/10 bg-white/95 shadow-sm">
+                <div className="flex items-center gap-1 px-2 whitespace-nowrap overflow-x-auto no-scrollbar">
                   <NavLink overlay href={withLocaleHref(locale, "/jaunumi")}>{t(locale, "nav.news")}</NavLink>
                   <NavLink overlay href={withLocaleHref(locale, "/kategorija/ardurvis-dzivoklim")}>{t(locale, "nav.exteriorApartment")}</NavLink>
                   <NavLink overlay href={withLocaleHref(locale, "/kategorija/ardurvis-privatmajai")}>{t(locale, "nav.exteriorHouse")}</NavLink>

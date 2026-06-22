@@ -3,8 +3,12 @@ import Image from "next/image";
 import { categories, products } from "@/data/products";
 import ProductCard from "@/components/ProductCard";
 import HeroSlider from "@/components/HeroSlider";
+import HomeBenefitsShowcase from "@/components/HomeBenefitsShowcase";
 import RevealGrid from "@/components/anim/RevealGrid";
 import MagneticButton from "@/components/anim/MagneticButton";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Ruler, Truck, Wrench, BadgeCheck, Phone } from "lucide-react";
+import { Carousel, CarouselItem } from "@/components/ui/carousel";
 import { headers } from "next/headers";
 import { getLocaleFromPathname, withLocaleHref, t } from "@/lib/i18n";
 
@@ -16,11 +20,16 @@ export default async function Home() {
   const locale = getLocaleFromPathname(pathname);
 
   const categoryImages = {
-    "ardurvis-dzivoklim": "https://images.unsplash.com/photo-1771354959667-96360bf59eab?auto=format&fit=crop&w=1600&q=80",
-    "ardurvis-privatmajai": "https://images.unsplash.com/photo-1613544723301-176686aa9f09?auto=format&fit=crop&w=1600&q=80",
-    "ieksdurvis": "https://images.unsplash.com/photo-1603673298820-40d77252226d?auto=format&fit=crop&w=1600&q=80",
-    "bidamas-durvis": "https://images.unsplash.com/photo-1525570665650-76bb26af503d?auto=format&fit=crop&w=1600&q=80",
-    "sleptas-durvis": "https://images.unsplash.com/photo-1721739227647-e6936b28c30f?auto=format&fit=crop&w=1600&q=80",
+    // Apartment entrance doors (interior corridor)
+    "ardurvis-dzivoklim": "https://images.unsplash.com/photo-1774578342058-e2becb500e15?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600",
+    // House entrance doors (modern exterior)
+    "ardurvis-privatmajai": "https://images.unsplash.com/photo-1758448756207-54505680d130?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600",
+    // Interior doors (bright room with open door)
+    "ieksdurvis": "https://images.unsplash.com/photo-1763412050485-d7e1688f8858?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600",
+    // Sliding doors (interior)
+    "bidamas-durvis": "https://images.unsplash.com/photo-1525570665650-76bb26af503d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600",
+    // Hidden/flush doors (minimal white door)
+    "sleptas-durvis": "https://images.unsplash.com/photo-1721739227647-e6936b28c30f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600",
   };
 
   const newProducts = products.filter((p) => p.isNew);
@@ -30,12 +39,32 @@ export default async function Home() {
 
   return (
     <main>
+      {/* LocalBusiness JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "HomeAndConstructionBusiness",
+            name: "Durų Namai",
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: "Džūkų g. 17",
+              addressLocality: "Jonavos r.",
+              addressCountry: "LT",
+            },
+            telephone: ["+370000000", "+371000000"],
+            openingHours: ["Mo-Fr 09:00-18:00", "Sa 10:00-15:00"],
+            url: process.env.NEXT_PUBLIC_SITE_URL || "https://tnbaltic.lt",
+          }),
+        }}
+      />
       {/* HERO SLIDER */}
       <section className="relative">
         <HeroSlider
             slides={[
               {
-                image: "https://images.unsplash.com/photo-1776632001065-ad9efe3ee60e?auto=format&fit=crop&w=2400&q=80",
+                image: "https://images.unsplash.com/photo-1776632001065-ad9efe3ee60e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=2400",
                 kicker: locale === "lv" ? "IEKŠDURVIS" : locale === "en" ? "INTERIOR DOORS" : "VIDAUS DURYS",
                 title: locale === "lv" ? "Iedvesma jūsu interjeram" : locale === "en" ? "Inspiration for your interior" : "Įkvėpimas jūsų interjerui",
                 subtitle: locale === "lv" ? "Izvēlies modernus risinājumus un kvalitatīvus materiālus." : locale === "en" ? "Choose modern solutions and high-quality materials." : "Rinkitės modernius sprendimus ir aukštos kokybės medžiagas.",
@@ -44,7 +73,7 @@ export default async function Home() {
                 ],
               },
               {
-                image: "https://images.unsplash.com/photo-1628744876657-abd5086695dc?auto=format&fit=crop&w=2400&q=80",
+                image: "https://images.unsplash.com/photo-1758448756207-54505680d130?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=2400",
                 kicker: locale === "lv" ? "IEEJAS DURVIS" : locale === "en" ? "ENTRANCE DOORS" : "LAUKO DURYS",
                 title: locale === "lv" ? "Modernas ārdurvis Jūsu mājai" : locale === "en" ? "Modern exterior doors for your home" : "Modernios lauko durys jūsų namams",
                 subtitle: locale === "lv" ? "Termodurvis ar augstu energoefektivitāti un skaņas izolāciju." : locale === "en" ? "Thermal doors with high energy efficiency and sound insulation." : "Termo durys su aukštu energiniu efektyvumu ir garso izoliacija.",
@@ -53,7 +82,7 @@ export default async function Home() {
                 ],
               },
               {
-                image: "https://images.unsplash.com/photo-1697653568339-e8f8a5dd7318?auto=format&fit=crop&w=2400&q=80",
+                image: "https://images.unsplash.com/photo-1696986324639-caa0590be25f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=85&w=2400",
                 kicker: locale === "lv" ? "SALONI" : locale === "en" ? "SHOWROOM" : "SALONAS",
                 title: locale === "lv" ? "Apmeklē mūsu salonu" : locale === "en" ? "Visit our showroom" : "Apsilankykite mūsų salone",
                 subtitle: locale === "lv" ? "Uzzini par materiāliem un risinājumiem klātienē." : locale === "en" ? "Learn about materials and solutions in person." : "Sužinokite apie medžiagas ir sprendimus gyvai.",
@@ -64,6 +93,7 @@ export default async function Home() {
             ]}
           />
       </section>
+      <HomeBenefitsShowcase locale={locale} />
 
       {/* KATEGORIJAS */}
       <section>
@@ -87,7 +117,6 @@ export default async function Home() {
                       src={categoryImage}
                       alt={categoryName}
                       fill
-                      unoptimized
                       sizes="(max-width: 1024px) 50vw, 20vw"
                       className="object-cover transition-transform duration-500 ease-out will-change-transform group-hover:scale-[1.06] motion-reduce:transition-none"
                     />
@@ -133,6 +162,81 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* How we work */}
+      <section>
+        <div className="container">
+          <h2 className="mb-4">{t(locale, "home.howWeWork.title")}</h2>
+          <div className="relative mb-4 aspect-[16/7] rounded-sm overflow-hidden border border-line bg-[--color-soft]">
+            <Image
+              src="https://images.unsplash.com/photo-1674649207083-281c2517ab49?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600"
+              alt={locale === "lv" ? "Durvju uzmērīšana un montāža objektā" : locale === "en" ? "On-site door measurement and installation" : "Durų matavimas ir montavimas objekte"}
+              fill
+              sizes="(max-width: 1024px) 100vw, 1200px"
+              className="object-cover"
+            />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="rounded-sm border border-line bg-white p-4">
+              <div className="mb-2 text-ink font-medium inline-flex items-center gap-2"><BadgeCheck size={16} className="text-ink/80" /> 1. {t(locale, "home.howWeWork.consultation")}</div>
+              <div className="text-[13px] text-muted">{t(locale, "home.howWeWork.consultationDesc")}</div>
+            </div>
+            <div className="rounded-sm border border-line bg-white p-4">
+              <div className="mb-2 text-ink font-medium inline-flex items-center gap-2"><Ruler size={16} className="text-ink/80" /> 2. {t(locale, "home.howWeWork.measurement")}</div>
+              <div className="text-[13px] text-muted">{t(locale, "home.howWeWork.measurementDesc")}</div>
+            </div>
+            <div className="rounded-sm border border-line bg-white p-4">
+              <div className="mb-2 text-ink font-medium inline-flex items-center gap-2"><Truck size={16} className="text-ink/80" /> 3. {t(locale, "home.howWeWork.delivery")}</div>
+              <div className="text-[13px] text-muted">{t(locale, "home.howWeWork.deliveryDesc")}</div>
+            </div>
+            <div className="rounded-sm border border-line bg-white p-4">
+              <div className="mb-2 text-ink font-medium inline-flex items-center gap-2"><Wrench size={16} className="text-ink/80" /> 4. {t(locale, "home.howWeWork.installation")}</div>
+              <div className="text-[13px] text-muted">{t(locale, "home.howWeWork.installationDesc")}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section>
+        <div className="container">
+          <h2 className="mb-4">{t(locale, "home.faq.title")}</h2>
+          <Accordion type="single" collapsible className="rounded-sm border border-line bg-white">
+            {["warranty","installTime","delivery","customSizes","colorChange","payment","measurement","materials"].map((key) => (
+              <AccordionItem key={key} value={key} className="border-b border-line last:border-b-0">
+                <AccordionTrigger className="px-4 py-3">{t(locale, `home.faq.q.${key}`)}</AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 text-[14px] text-muted">{t(locale, `home.faq.a.${key}`)}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section>
+        <div className="container">
+          <h2 className="mb-4">{t(locale, "home.testimonials.title")}</h2>
+          <div className="relative mb-4 aspect-[16/7] rounded-sm overflow-hidden border border-line bg-[--color-soft]">
+            <Image
+              src="https://images.unsplash.com/photo-1768488314310-3742b3c75579?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600"
+              alt={locale === "lv" ? "Laimīgi māju īpašnieki dzīvojamā zonā" : locale === "en" ? "Happy homeowners in a living space" : "Laimingi namų savininkai svetainėje"}
+              fill
+              sizes="(max-width: 1024px) 100vw, 1200px"
+              className="object-cover"
+            />
+          </div>
+          <Carousel className="pb-2">
+            {[1,2,3,4].map((i) => (
+              <CarouselItem key={i} className="w-[320px]">
+                <div className="rounded-sm border border-line bg-white p-4">
+                  <div className="text-[14px] text-muted">[PARAUGS] {t(locale, "home.testimonials.sample")}</div>
+                  <div className="mt-3 text-[13px] text-ink font-medium">{t(locale, "home.testimonials.name")} {i}</div>
+                </div>
+              </CarouselItem>
+            ))}
+          </Carousel>
+        </div>
+      </section>
+
       {/* CTA josla */}
       <section>
         <div className="container">
@@ -151,6 +255,14 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      {/* Floating CTA (mobile) */}
+      <a
+        href={withLocaleHref(locale, "/kontakti")}
+        className="fixed right-3 bottom-3 z-40 md:hidden inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] text-white px-4 py-3 shadow-premium hover:bg-[var(--color-accent-dark)]"
+        aria-label={t(locale, "home.floatingCta")}
+      >
+        <Phone size={18} /> {t(locale, "home.floatingCta")}
+      </a>
     </main>
   );
 }

@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { SplitText } from "gsap/SplitText";
-import { useGSAP } from "@gsap/react";
 import { getLocaleFromPathname, t } from "@/lib/i18n";
-
-gsap.registerPlugin(ScrollTrigger, SplitText, useGSAP);
 
 const prefersReduced = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -28,63 +22,94 @@ export default function HeroSlider({ slides }) {
   const activeRef = useRef(0);
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [gsapLib, setGsapLib] = useState(null);
 
-  const animateContentIn = (slideEl, delay = 0) => {
+  // Lazy-load GSAP and plugins on the client
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { gsap } = await import("gsap");
+        const { ScrollTrigger } = await import("gsap/ScrollTrigger");
+        const { SplitText } = await import("gsap/SplitText");
+        if (mounted) {
+          gsap.registerPlugin(ScrollTrigger, SplitText);
+          setGsapLib(gsap);
+        }
+      } catch {
+        // If GSAP fails to load, slider still functions without animations
+        setGsapLib(null);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const animateContentIn = useCallback((slideEl, delay = 0) => {
+    if (!gsapLib) return null;
     const img = slideEl.querySelector("[data-hero-img]");
     const card = slideEl.querySelector("[data-hero-card]");
     const titleEl = slideEl.querySelector("[data-hero-title]");
     const els = slideEl.querySelectorAll("[data-hero-el]");
-    const tl = gsap.timeline({ delay, defaults: { ease: "power3.out" } });
+    const tl = gsapLib.timeline({ delay, defaults: { ease: "power3.out" } });
 
     if (img) tl.fromTo(img, { scale: 1.08 }, { scale: 1, duration: 2.4, ease: "power2.out" }, 0);
     if (card) tl.fromTo(card, { y: 28, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7 }, 0.15);
     if (titleEl) {
-      if (splitRef.current) {
+      if (splitRef.current?.revert) {
         splitRef.current.revert();
         splitRef.current = null;
       }
       try {
-        const split = SplitText.create(titleEl, { type: "lines", mask: "lines" });
-        splitRef.current = split;
-        tl.from(split.lines, { yPercent: 110, duration: 0.85, stagger: 0.1 }, 0.3);
+        // SplitText is registered on gsapLib
+        const split = gsapLib.plugins?.SplitText?.create
+          ? gsapLib.plugins.SplitText.create(titleEl, { type: "lines", mask: "lines" })
+          : null;
+        if (split) {
+          splitRef.current = split;
+          tl.from(split.lines, { yPercent: 110, duration: 0.85, stagger: 0.1 }, 0.3);
+        } else {
+          tl.fromTo(titleEl, { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7 }, 0.3);
+        }
       } catch {
         tl.fromTo(titleEl, { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7 }, 0.3);
       }
     }
     if (els.length) tl.fromTo(els, { y: 18, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.6, stagger: 0.09 }, 0.45);
     return tl;
-  };
+  }, [gsapLib]);
 
-  const { contextSafe } = useGSAP(
-    () => {
-      if (!count) return;
-      slideRefs.current.forEach((el, i) => {
-        if (!el) return;
-        gsap.set(el, { autoAlpha: i === 0 ? 1 : 0, zIndex: i === 0 ? 1 : 0 });
+  // Initialize slide state and parallax when GSAP is available
+  useEffect(() => {
+    if (!count) return;
+    // Set initial visibility without gsap as well
+    slideRefs.current.forEach((el, i) => {
+      if (!el) return;
+      el.style.opacity = i === 0 ? 1 : 0;
+      el.style.zIndex = i === 0 ? 1 : 0;
+    });
+
+    if (!gsapLib || prefersReduced()) return;
+
+    if (slideRefs.current[0]) animateContentIn(slideRefs.current[0], 0.15);
+
+    const imgs = rootRef.current?.querySelectorAll("[data-hero-img]");
+    if (imgs?.length) {
+      gsapLib.to(imgs, {
+        yPercent: 5,
+        ease: "none",
+        scrollTrigger: {
+          trigger: rootRef.current,
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
       });
+    }
+  }, [count, gsapLib, animateContentIn]);
 
-      if (prefersReduced()) return;
-
-      if (slideRefs.current[0]) animateContentIn(slideRefs.current[0], 0.15);
-
-      const imgs = rootRef.current?.querySelectorAll("[data-hero-img]");
-      if (imgs?.length) {
-        gsap.to(imgs, {
-          yPercent: 5,
-          ease: "none",
-          scrollTrigger: {
-            trigger: rootRef.current,
-            start: "top top",
-            end: "bottom top",
-            scrub: true,
-          },
-        });
-      }
-    },
-    { scope: rootRef, dependencies: [count] }
-  );
-
-  const goTo = contextSafe((rawNext) => {
+  const goTo = useCallback((rawNext) => {
     if (!count || animatingRef.current) return;
     const next = ((rawNext % count) + count) % count;
     const cur = activeRef.current;
@@ -96,26 +121,28 @@ export default function HeroSlider({ slides }) {
     activeRef.current = next;
     setActive(next);
 
-    if (prefersReduced()) {
-      gsap.set(curEl, { autoAlpha: 0, zIndex: 0 });
-      gsap.set(nextEl, { autoAlpha: 1, zIndex: 1 });
+    if (prefersReduced() || !gsapLib) {
+      curEl.style.opacity = 0;
+      curEl.style.zIndex = 0;
+      nextEl.style.opacity = 1;
+      nextEl.style.zIndex = 1;
       return;
     }
 
     animatingRef.current = true;
-    gsap.set(nextEl, { zIndex: 2 });
-    gsap.set(curEl, { zIndex: 1 });
+    gsapLib.set(nextEl, { zIndex: 2 });
+    gsapLib.set(curEl, { zIndex: 1 });
 
-    const tl = gsap.timeline({
+    const tl = gsapLib.timeline({
       onComplete: () => {
-        gsap.set(curEl, { autoAlpha: 0, zIndex: 0 });
-        gsap.set(nextEl, { zIndex: 1 });
+        gsapLib.set(curEl, { autoAlpha: 0, zIndex: 0 });
+        gsapLib.set(nextEl, { zIndex: 1 });
         animatingRef.current = false;
       },
     });
     tl.fromTo(nextEl, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.85, ease: "power2.inOut" }, 0);
     tl.add(animateContentIn(nextEl), 0.1);
-  });
+  }, [count, gsapLib, animateContentIn]);
 
   useEffect(() => {
     if (count < 2 || paused) return;
@@ -156,7 +183,6 @@ export default function HeroSlider({ slides }) {
                   src={slide.image}
                   alt={slide.title || t(locale, "hero.imageAlt")}
                   fill
-                  unoptimized
                   priority={i === 0}
                   sizes="100vw"
                   className="object-cover"

@@ -21,6 +21,10 @@ export async function generateMetadata({ params }) {
         : `${product.collection} kolekcijos durys. Kaina nuo €${product.price}. Montavimas ir pristatymas visoje Lietuvoje.`;
 
   const ogLocale = locale === "lv" ? "lv_LV" : locale === "en" ? "en_US" : "lt_LT";
+  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://tnbaltic.lt";
+  const pathLt = `/lt/produkts/${id}`;
+  const pathLv = `/lv/produkts/${id}`;
+  const pathEn = `/en/produkts/${id}`;
 
   return {
     title,
@@ -31,6 +35,10 @@ export async function generateMetadata({ params }) {
       locale: ogLocale,
       siteName: "Durų Namai",
       type: "website",
+    },
+    alternates: {
+      canonical: `${base}${locale === "lv" ? pathLv : locale === "en" ? pathEn : pathLt}`,
+      languages: { lt: `${base}${pathLt}`, lv: `${base}${pathLv}`, en: `${base}${pathEn}` },
     },
   };
 }

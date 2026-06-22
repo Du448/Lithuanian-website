@@ -2,16 +2,22 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Heart, Shield, ChevronUp, ChevronDown } from "lucide-react";
+import { Heart, Shield, ChevronUp, ChevronDown, Truck, Ruler, Wrench, ShieldCheck, ChevronLeft, ChevronRight, Layers } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import AccordionItem from "@/components/anim/AccordionItem";
 import MagneticButton from "@/components/anim/MagneticButton";
 import RevealGrid from "@/components/anim/RevealGrid";
 import { getProductById, getProductsByCategory } from "@/data/products";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { getLocaleFromPathname, translateColorLabel, withLocaleHref, t } from "@/lib/i18n";
 import { isWishlisted, toggleWishlistId } from "@/lib/wishlist";
+import { useCompare } from "@/lib/compare";
+import { useRfq } from "@/lib/rfq";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+const Lightbox = dynamic(() => import("./ProductLightbox"), { ssr: false });
 
 export default function ProductClient({ id }) {
   const locale = getLocaleFromPathname(usePathname());
@@ -27,6 +33,10 @@ export default function ProductClient({ id }) {
   const thumbsRef = useRef(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
+  const [autoPlay, setAutoPlay] = useState(false);
+  const [slideDir, setSlideDir] = useState(1); // 1 => forward, -1 => backward
+  const { has, toggle, ids, max } = useCompare();
+  const { add: addRfq } = useRfq();
 
   const scrollThumbs = (dir) => {
     const el = thumbsRef.current;
@@ -57,6 +67,18 @@ export default function ProductClient({ id }) {
     };
   }, [product?.id]);
 
+  // Lightbox keyboard controls
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setLightboxOpen(false);
+      if (e.key === "ArrowLeft") setLightboxIdx((i) => (i - 1 + images.length) % images.length);
+      if (e.key === "ArrowRight") setLightboxIdx((i) => (i + 1) % images.length);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxOpen, images.length]);
+
   useEffect(() => {
     updateScrollButtons();
     const el = thumbsRef.current;
@@ -70,6 +92,26 @@ export default function ProductClient({ id }) {
       window.removeEventListener("resize", onResize);
     };
   }, [images.length]);
+
+  // Hover-activated slideshow for main gallery (ping-pong)
+  useEffect(() => {
+    if (!autoPlay || images.length <= 1) return;
+    const id = setInterval(() => {
+      setActiveIdx((i) => {
+        const next = i + slideDir;
+        if (next >= images.length) {
+          setSlideDir(-1);
+          return Math.max(0, images.length - 2);
+        }
+        if (next < 0) {
+          setSlideDir(1);
+          return Math.min(1, images.length - 1);
+        }
+        return next;
+      });
+    }, 1200);
+    return () => clearInterval(id);
+  }, [autoPlay, images.length, slideDir]);
 
   if (!product) {
     return (
@@ -106,22 +148,57 @@ export default function ProductClient({ id }) {
   return (
     <main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsLd) }} />
+      {product ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Product",
+              name: product.name,
+              image: Array.isArray(images) && images.length ? images : undefined,
+              description: product.short || product.name,
+              brand: { "@type": "Brand", name: product.collection },
+              offers: {
+                "@type": "Offer",
+                priceCurrency: "EUR",
+                price: String(product.price),
+                availability: "https://schema.org/InStock",
+                url: withLocaleHref(locale, `/produkts/${product.id}`),
+              },
+            }),
+          }}
+        />
+      ) : null}
 
-      <section className="border-b border-line">
-        <div className="container py-6">
-          <div className="text-sm text-muted">
-            <Link className="text-ink hover:text-ink" href={withLocaleHref(locale, "/")}>{t(locale, "common.home")}</Link>
-            <span className="mx-1 text-muted">/</span>
-            <span className="text-ink">{product.name}</span>
-          </div>
+      <section className="-mt-10 lg:-mt-16 relative z-10">
+        <div className="container py-0">
+          <nav aria-label="Breadcrumbs" className="w-fit px-3 py-1.5 rounded-sm border border-line/80 bg-white/80 backdrop-blur text-xs shadow-premium">
+            <ol className="flex items-center gap-1 text-muted">
+              <li>
+                <Link
+                  className="inline-flex items-center gap-1 text-muted hover:text-ink underline-offset-4 hover:underline"
+                  href={withLocaleHref(locale, "/")}
+                >
+                  {t(locale, "common.home")}
+                </Link>
+              </li>
+              <li aria-hidden className="text-muted px-0.5">
+                <ChevronRight size={14} />
+              </li>
+              <li className="text-ink font-medium truncate max-w-[70vw] lg:max-w-none">
+                {product.name}
+              </li>
+            </ol>
+          </nav>
         </div>
       </section>
 
-      <section>
-        <div className="container py-6">
+      <section className="-mt-16 lg:-mt-28">
+        <div className="container pt-0 pb-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left: Gallery */}
-            <div>
+            <div className="lg:-mt-12">
               {/* Shared aspect box to keep thumbnails column height equal to main image */}
               <div className="relative aspect-[3/4]">
                 <div className="absolute inset-0 grid grid-cols-1 lg:grid-cols-[112px_1fr] gap-3">
@@ -129,18 +206,18 @@ export default function ProductClient({ id }) {
                   <div className="relative hidden lg:block h-full overflow-hidden bg-[--color-soft] rounded-sm">
                     <button
                       type="button"
-                      className={`absolute left-1/2 -translate-x-1/2 top-2 z-20 inline-flex h-9 w-9 items-center justify-center rounded-sm border border-line bg-white shadow-md text-ink transition-opacity hover:bg-ink/10 ${canScrollUp ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                      className={`absolute left-1/2 -translate-x-1/2 top-2 z-20 inline-flex h-9 w-9 items-center justify-center rounded-sm border border-line bg-white shadow-md text-ink transition-opacity hover:bg-ink/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ink] focus-visible:ring-offset-2 focus-visible:ring-offset-white ${canScrollUp ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                       aria-label={t(locale, "product.previous")}
                       onClick={() => scrollThumbs(-1)}
                     >
                       <ChevronUp size={18} />
                     </button>
-                    <div ref={thumbsRef} className="absolute inset-x-0 top-[52px] bottom-[52px] overflow-y-auto no-scrollbar pr-1">
+                    <div ref={thumbsRef} className="absolute inset-x-0 top-0 bottom-[52px] overflow-y-auto no-scrollbar pr-1 lg:bottom-auto lg:h-[524px]">
                       <div className="flex h-max flex-col gap-2">
                         {images.map((src, idx) => (
                           <button
                             key={`v-${idx}`}
-                            className={`relative group aspect-square rounded-sm border ${idx === selectedIdx ? "border-[--color-accent]" : "border-line"} bg-[--color-soft] text-xs text-muted w-full overflow-hidden`}
+                            className={`relative group aspect-square rounded-sm border ${idx === selectedIdx ? "border-[--color-accent]" : "border-line"} bg-[--color-soft] text-xs text-muted w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ink]`}
                             onClick={() => { setSelectedIdx(idx); setActiveIdx(idx); }}
                             onMouseEnter={() => setActiveIdx(idx)}
                             onMouseLeave={() => setActiveIdx(selectedIdx)}
@@ -156,10 +233,10 @@ export default function ProductClient({ id }) {
                                   src={src}
                                   alt={`${product.name} attēls ${idx + 1}`}
                                   fill
-                                  unoptimized
                                   referrerPolicy="no-referrer"
                                   sizes="120px"
-                                  className="object-contain"
+                                  loading="lazy"
+                                  className="object-contain object-top"
                                 />
                               </span>
                             )}
@@ -170,7 +247,7 @@ export default function ProductClient({ id }) {
                     </div>
                     <button
                       type="button"
-                      className={`absolute left-1/2 -translate-x-1/2 bottom-2 z-20 inline-flex h-9 w-9 items-center justify-center rounded-sm border border-line bg-white shadow-md text-ink transition-opacity hover:bg-ink/10 ${canScrollDown ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                      className={`absolute left-1/2 -translate-x-1/2 bottom-2 lg:bottom-auto lg:top-[532px] z-20 inline-flex h-9 w-9 items-center justify-center rounded-sm border border-line bg-white shadow-md text-ink transition-opacity hover:bg-ink/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ink] focus-visible:ring-offset-2 focus-visible:ring-offset-white ${canScrollDown ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                       aria-label={t(locale, "product.next")}
                       onClick={() => scrollThumbs(1)}
                     >
@@ -179,8 +256,16 @@ export default function ProductClient({ id }) {
                   </div>
 
                   {/* Main image */}
-                  <div className="relative overflow-hidden rounded-sm">
-                    {images[activeIdx] === "placeholder" ? (
+                  <div
+                    className="relative overflow-hidden rounded-sm group [--zoom-origin:50%_50%]"
+                    onMouseMove={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const x = ((e.clientX - rect.left) / rect.width) * 100;
+                      const y = ((e.clientY - rect.top) / rect.height) * 100;
+                      e.currentTarget.style.setProperty("--zoom-origin", `${x}% ${y}%`);
+                    }}
+                  >
+                    {images.every((src) => src === "placeholder") ? (
                       <div className="w-full h-full bg-[--color-soft] flex items-center justify-center text-muted">
                         <span>{t(locale, "product.image")}</span>
                       </div>
@@ -191,19 +276,38 @@ export default function ProductClient({ id }) {
                           setLightboxIdx(activeIdx);
                           setLightboxOpen(true);
                         }}
-                        className="relative block w-full h-full"
-                        aria-label={t(locale, "product.openImage")}
+                        className="relative block w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ink] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                        onMouseEnter={() => setAutoPlay(true)}
+                        onMouseLeave={() => setAutoPlay(false)}
+                        aria-label={`${t(locale, "product.openImage")} — ${product.name}`}
                       >
-                        <Image
-                          src={images[activeIdx]}
-                          alt={product.name}
-                          fill
-                          unoptimized
-                          referrerPolicy="no-referrer"
-                          loading="eager"
-                          sizes="(max-width: 1024px) 100vw, 50vw"
-                          className="object-contain"
-                        />
+                        <div className="absolute inset-0 overflow-hidden">
+                          <div
+                            className="h-full w-full flex transition-transform duration-500 ease-out [transform:translateX(var(--slide-x))]"
+                            style={{ "--slide-x": `-${activeIdx * 100}%` }}
+                          >
+                            {images.map((src, idx) => (
+                              <div key={`slide-${idx}`} className="relative h-full w-full shrink-0 grow-0 basis-full">
+                                {src === "placeholder" ? (
+                                  <div className="absolute inset-0 bg-[--color-soft] flex items-center justify-center text-muted">
+                                    <span>{t(locale, "product.image")}</span>
+                                  </div>
+                                ) : (
+                                  <Image
+                                    src={src}
+                                    alt={`${product.name} attēls ${idx + 1}`}
+                                    fill
+                                    referrerPolicy="no-referrer"
+                                    loading="eager"
+                                    priority={idx === 0}
+                                    sizes="(max-width: 1024px) 100vw, 50vw"
+                                    className="object-contain object-top transition-transform duration-300 ease-out [transform-origin:var(--zoom-origin)] group-hover:scale-[1.05]"
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </button>
                     )}
                   </div>
@@ -215,7 +319,7 @@ export default function ProductClient({ id }) {
                 {images.map((src, idx) => (
                   <button
                     key={idx}
-                    className={`relative group aspect-square rounded-sm border ${idx === selectedIdx ? "border-[--color-accent]" : "border-line"} bg-[--color-soft] text-xs text-muted overflow-hidden`}
+                    className={`relative group aspect-square rounded-sm border ${idx === selectedIdx ? "border-[--color-accent]" : "border-line"} bg-[--color-soft] text-xs text-muted overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ink]`}
                     onClick={() => { setSelectedIdx(idx); setActiveIdx(idx); }}
                     onMouseEnter={() => setActiveIdx(idx)}
                     onMouseLeave={() => setActiveIdx(selectedIdx)}
@@ -231,10 +335,10 @@ export default function ProductClient({ id }) {
                           src={src}
                           alt={`${product.name} attēls ${idx + 1}`}
                           fill
-                          unoptimized
                           referrerPolicy="no-referrer"
                           sizes="120px"
-                          className="object-contain"
+                          loading="lazy"
+                          className="object-contain object-top"
                         />
                       </span>
                     )}
@@ -244,10 +348,10 @@ export default function ProductClient({ id }) {
               </div>
             </div>
 
-            {/* Right: Info */}
-            <div>
+            {/* Right: Info (sticky on desktop) */}
+            <div className="lg:sticky lg:top-16 h-fit lg:-mt-12">
               <div className="text-[12px] font-semibold tracking-wide text-ink">{product.collection}</div>
-              <h1 className="mt-1 text-2xl sm:text-3xl font-semibold tracking-wide text-ink">{product.name}</h1>
+              <h1 className="mt-0 text-2xl sm:text-3xl font-semibold tracking-wide text-ink">{product.name}</h1>
 
               <div className="mt-2 flex items-baseline gap-2">
                 {hasOffer ? (
@@ -261,18 +365,32 @@ export default function ProductClient({ id }) {
                 )}
               </div>
 
-              {/* Colors (display only: exterior / interior) */}
+              {/* Colors: interactive swatches that try to switch to related image */}
               {product.colors?.length ? (
                 <div className="mt-5">
                   <div className="text-sm text-muted mb-2">{t(locale, "product.colorLabel")}</div>
-                  <div className="flex flex-wrap items-center gap-2 text-[15px] text-ink">
-                    <span className="rounded-sm border border-line px-3 py-1.5">{translateColorLabel(locale, product.colors[0])}</span>
-                    {product.colors[1] ? (
-                      <>
-                        <span className="text-muted">/</span>
-                        <span className="rounded-sm border border-line px-3 py-1.5">{translateColorLabel(locale, product.colors[1])}</span>
-                      </>
-                    ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {product.colors.map((c, idx) => {
+                      const label = translateColorLabel(locale, c);
+                      const isActive = selectedIdx === idx;
+                      return (
+                        <button
+                          key={c + idx}
+                          type="button"
+                          className={`rounded-sm border px-3 py-1.5 text-[15px] transition-colors ${isActive ? "border-[--color-accent] text-ink" : "border-line text-ink hover:border-[--color-muted]"}`}
+                          onClick={() => {
+                            // Heuristic: try to find an image that includes a token of the color label
+                            const token = String(c).split(" ")[0].toLowerCase();
+                            const matchIdx = images.findIndex((u) => String(u).toLowerCase().includes(token));
+                            const nextIdx = matchIdx >= 0 ? matchIdx : 0;
+                            setSelectedIdx(nextIdx);
+                            setActiveIdx(nextIdx);
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}
@@ -302,31 +420,75 @@ export default function ProductClient({ id }) {
               ) : null}
 
               {/* Actions */}
-              <div className="mt-6 flex flex-wrap gap-3">
-                <MagneticButton>
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                <MagneticButton className="block w-full">
                   <Link
                     href={withLocaleHref(locale, `/kontakti?produkts=${encodeURIComponent(product.id)}`)}
-                    className="inline-block bg-accent hover:bg-accent-dark text-white rounded-sm px-6 py-2.5 transition-colors duration-300"
+                    className="flex h-12 w-full items-center justify-center rounded-sm bg-accent px-4 py-2.5 text-center text-sm font-medium leading-tight text-white transition-colors duration-300 hover:bg-accent-dark"
                   >
                     {t(locale, "product.requestOffer")}
                   </Link>
                 </MagneticButton>
                 <button
                   type="button"
-                  className={`rounded-sm border border-line px-5 py-2.5 inline-flex items-center gap-2 transition-[border-color,transform] duration-200 hover:border-[--color-muted] active:scale-[0.97] ${wishlisted ? "text-accent" : "text-ink"}`}
+                  className={`flex h-12 w-full items-center justify-center gap-2 rounded-sm border px-4 py-2.5 text-center text-sm font-medium leading-tight transition-[border-color,transform] duration-200 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ink] ${has(product.id) ? "border-[--color-accent] text-accent" : "border-line text-ink hover:border-[--color-muted]"}`}
+                  onClick={() => { if (!has(product.id) && ids.length >= max) return; toggle(product.id); }}
+                  aria-label={has(product.id) ? (t(locale, "compare.remove") || "Noņemt no salīdzināšanas") : (t(locale, "product.addToCompare") || "Pievienot salīdzināšanai")}
+                >
+                  <Layers size={18} />
+                  {has(product.id) ? (t(locale, "compare.remove") || "Noņemt no salīdzināšanas") : (t(locale, "product.addToCompare") || "Pievienot salīdzināšanai")}
+                </button>
+                <button
+                  type="button"
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-sm border border-line px-4 py-2.5 text-center text-sm font-medium leading-tight transition-[border-color,transform] duration-200 hover:border-[--color-muted] active:scale-[0.97] text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ink]"
+                  onClick={() => {
+                    const color = Array.isArray(product.colors) ? (product.colors[selectedIdx] || product.colors[0]) : undefined;
+                    addRfq({ id: product.id, qty: 1, size: activeSize || undefined, color });
+                  }}
+                  aria-label={t(locale, "rfq.add")}
+                >
+                  {t(locale, "rfq.add") || "Pievienot pieprasījumam"}
+                </button>
+                <button
+                  type="button"
+                  className={`flex h-12 w-full items-center justify-center gap-2 rounded-sm border border-line px-4 py-2.5 text-center text-sm font-medium leading-tight transition-[border-color,transform] duration-200 hover:border-[--color-muted] active:scale-[0.97] ${wishlisted ? "text-accent" : "text-ink"} focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ink]`}
                   onClick={() => toggleWishlistId(product.id)}
+                  aria-label={t(locale, "product.addWishlist")}
                 >
                   <Heart size={18} />
                   {t(locale, "product.addWishlist")}
                 </button>
               </div>
 
-              <div className="mt-3 text-[15px] text-muted">{t(locale, "product.freeServices")}</div>
+              {/* Trust icons row */}
+              <div className="mt-4 flex w-full items-center justify-between gap-2 sm:gap-3">
+                {[
+                  { key: "trust.measurement", label: t(locale, "trust.measurement") || "Uzmērīšana", Icon: Ruler },
+                  { key: "trust.installation", label: t(locale, "trust.installation") || "Montāža", Icon: Wrench },
+                  { key: "trust.warranty", label: t(locale, "trust.warranty") || "Garantija", Icon: ShieldCheck },
+                  { key: "trust.delivery", label: t(locale, "trust.delivery") || "Piegāde", Icon: Truck },
+                ].map(({ key, label, Icon }) => (
+                  <Tooltip key={key}>
+                    <TooltipTrigger asChild>
+                      <span
+                        tabIndex={0}
+                        aria-label={label}
+                        className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line/70 bg-white/80 text-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-[--color-muted] hover:shadow-premium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-ink] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                      >
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[--color-soft] transition-colors group-hover:bg-[--color-soft]">
+                          <Icon size={16} />
+                        </span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{label}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
 
-              {/* Accordions */}
+              {/* Accordions with table-like spec sections */}
               <div className="mt-6 divide-y divide-[--color-line] border border-line rounded-sm bg-white">
-                <AccordionItem title={t(locale, "product.specs")} defaultOpen>
-                    <ul className="list-disc pl-5">
+                <AccordionItem title={t(locale, "product.specs")}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2">
                       {Object.entries(product.specs || {}).map(([k, v]) => {
                         const labelKey =
                           k === "Vērtnes biezums"
@@ -361,12 +523,13 @@ export default function ProductClient({ id }) {
                               : rawValue;
 
                         return (
-                          <li key={k}>
-                            <span className="text-muted">{label}:</span> {value}
-                          </li>
+                          <div key={k} className="grid grid-cols-[1fr_auto] items-start gap-3 px-3 py-2 border-b border-line last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+                            <div className="text-muted text-sm">{label}</div>
+                            <div className="text-ink text-sm text-right">{value}</div>
+                          </div>
                         );
                       })}
-                    </ul>
+                    </div>
                 </AccordionItem>
                 <AccordionItem title={t(locale, "product.set")}>
                   {t(locale, "pages.services.description")}
@@ -383,78 +546,41 @@ export default function ProductClient({ id }) {
         </div>
       </section>
 
-      {/* Similar products */}
+      {/* Similar products: horizontal carousel */}
       <section>
         <div className="container">
-          <h2 className="mb-4">{t(locale, "product.similar")}</h2>
-          <RevealGrid className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">{t(locale, "product.similar")}</h2>
+            <div className="hidden md:flex items-center gap-2">
+              <button type="button" className="rounded-sm border border-line p-2 text-ink hover:border-[--color-muted]" onClick={() => {
+                const scroller = document.getElementById("similar-scroll");
+                if (scroller) scroller.scrollBy({ left: -320, behavior: "smooth" });
+              }}><ChevronLeft size={18} /></button>
+              <button type="button" className="rounded-sm border border-line p-2 text-ink hover:border-[--color-muted]" onClick={() => {
+                const scroller = document.getElementById("similar-scroll");
+                if (scroller) scroller.scrollBy({ left: 320, behavior: "smooth" });
+              }}><ChevronRight size={18} /></button>
+            </div>
+          </div>
+          <div id="similar-scroll" className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2">
             {similar.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <div key={p.id} className="snap-start shrink-0 w-[260px]">
+                <ProductCard product={p} />
+              </div>
             ))}
-          </RevealGrid>
+          </div>
         </div>
       </section>
 
       {lightboxOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setLightboxOpen(false)}
-        >
-          <div className="relative max-w-5xl w-full" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="absolute right-2 top-2 text-white text-xl"
-              aria-label={t(locale, "product.close")}
-              onClick={() => setLightboxOpen(false)}
-            >
-              ✕
-            </button>
-            <div className="relative w-full aspect-video bg-black">
-              <Image
-                src={images[lightboxIdx]}
-                alt={`${product.name} – palielināts attēls`}
-                fill
-                unoptimized
-                referrerPolicy="no-referrer"
-                sizes="100vw"
-                className="object-contain"
-              />
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <button
-                type="button"
-                className="rounded-sm border border-line bg-white/10 text-white px-3 py-1.5"
-                onClick={() => setLightboxIdx((i) => (i - 1 + images.length) % images.length)}
-              >
-                {t(locale, "product.previous")}
-              </button>
-              <div className="text-white text-sm">
-                {lightboxIdx + 1} / {images.length}
-              </div>
-              <button
-                type="button"
-                className="rounded-sm border border-line bg-white/10 text-white px-3 py-1.5"
-                onClick={() => setLightboxIdx((i) => (i + 1) % images.length)}
-              >
-                {t(locale, "product.next")}
-              </button>
-            </div>
-            <div className="mt-3 grid grid-cols-5 gap-2">
-              {images.map((src, idx) => (
-                <button
-                  key={idx}
-                  className={`aspect-square rounded-sm border ${idx === lightboxIdx ? 'border-[--color-accent]' : 'border-line'} bg-[--color-soft]`}
-                  onClick={() => setLightboxIdx(idx)}
-                  aria-label={t(locale, "product.imageN").replace("{n}", String(idx + 1))}
-                >
-                  <span className="relative block h-full w-full overflow-hidden">
-                    <Image src={src} alt={`${product.name} thumbnails`} fill unoptimized referrerPolicy="no-referrer" sizes="100px" className="object-contain" />
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <Lightbox
+          images={images}
+          index={lightboxIdx}
+          setIndex={setLightboxIdx}
+          onClose={() => setLightboxOpen(false)}
+          locale={locale}
+          productName={product.name}
+        />
       )}
     </main>
   );
