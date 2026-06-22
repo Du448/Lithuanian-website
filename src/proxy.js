@@ -7,7 +7,7 @@ function isPublicFile(pathname) {
   return pathname.includes(".");
 }
 
-export function middleware(request) {
+export function proxy(request) {
   const { pathname, search } = request.nextUrl;
 
   if (
@@ -40,6 +40,7 @@ export function middleware(request) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-invoke-path", pathname);
+
   return NextResponse.rewrite(url, {
     request: {
       headers: requestHeaders,
